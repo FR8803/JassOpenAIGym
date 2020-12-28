@@ -1,4 +1,4 @@
-from rlcard.games.jass.card import init_swiss_deck
+from Schieber.card import init_swiss_deck
 
 
 class JassDealer(object):

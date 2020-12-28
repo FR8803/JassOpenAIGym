@@ -1,7 +1,7 @@
 from enum import Enum
 
-from rlcard.games.jass.card import JassSuits, JassCard
-from rlcard.games.jass.util import cards2list
+from Schieber.card import JassSuits, JassCard
+from Schieber.util import cards2list
 
 
 class Trumps(Enum):

@@ -2,9 +2,9 @@ from copy import deepcopy
 
 import numpy as np
 
-from rlcard.games.jass.dealer import JassDealer
-from rlcard.games.jass.player import JassPlayer
-from rlcard.games.jass.round import JassRound
+from Schieber.dealer import JassDealer
+from Schieber.player import JassPlayer
+from Schieber.round import JassRound
 
 MAX_STICH_SCORE = 157  # max score one can win in a stich
 

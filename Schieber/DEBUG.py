@@ -1,6 +1,6 @@
-from rlcard.games.jass.card import JassCard, JassSuits
-from rlcard.games.jass.player import JassPlayer
-from rlcard.games.jass.round import Trumps, TRUMPF, UNDENUFE
+from Schieber.card import JassCard, JassSuits
+from Schieber.player import JassPlayer
+from Schieber.round import Trumps, TRUMPF, UNDENUFE
 
 
 class DEBUG:
