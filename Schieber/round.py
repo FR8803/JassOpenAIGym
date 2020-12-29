@@ -202,6 +202,7 @@ class JassRound(object):
             self.game_over = True
             winner = sorted(self.round_points.items(), key=lambda k: k[1], reverse=True)[0][0]
             self.game_winner = winner
+            return game_over
 
     def sort_cards(self, cards):
         if self.trump == Trumps.OBENABE:

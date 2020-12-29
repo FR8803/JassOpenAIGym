@@ -15,22 +15,48 @@ class FooEnv(gym.Env):
 
   def __init__(self):
   self.observation_space =
-  self.action_space =
+  #returns all legal actions a player has
+  self._action_set = self.round.get_legal_actions()
+  #returns the space of legal action, e.g. Discrete (8) returns a set with 8 elements {0, 1, 2, ..., 7}
+  self.action_space =  spaces.Discrete(len(self._action_set))
 
-#copied from Atari gym
-  self.viewer = None
-
+  '''From the OpenAI Gym doc (https://gym.openai.com/docs/#environments):
+  what our actions are doing to the environment, step return four values (implementation of the action-environment loop):
+  1. observation (object) -> an environment-specific object representing your observation of the environment. e.g. the board state in a board game.
+  2. reward (float) -> reward achieved trough action
+  3. done (bool) -> whether environment has to be reseted again (end of an episode, when done == True)
+  4. info (dict) -> diagnostic information useful for debugging. It can sometimes be useful for learning (for example, it might contain the raw probabilities behind the environment’s last state change). 
+  '''
+  #reward after each stich
   def step(self, action):
-    ...
-  def reset(self):
-    ...
+    self.reward = 0.0
+    self.action = self._action_set[action]
 
-  #copied from atari gym
+    #change this!
+    self.observation = self.round.get_state
+
+    if not self.round.played_cards:
+      self.stich_winner = self.round.stich_winner
+      reward += self.round.calculate_stich_points
+      done = True
+    else:
+      self.stich_winner = None
+      done = False
+
+    info = {}
+    return observation, reward, done, info
+
+
+
+
+  def reset(self):
+    # starting the process by resetting the environment and returning an initial observation
+    self.observation = {}
+
   def render(self, mode='human'):
     return None
 
-  #copied from Atari gym
+
   def close(self):
-    if self.viewer is not None:
-      self.viewer.close()
-      self.viewer = None
+    ...
+
