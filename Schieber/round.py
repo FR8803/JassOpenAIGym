@@ -43,6 +43,7 @@ class JassRound(object):
         self.dealer = dealer
         self.trump = None
         self.played_cards: [JassCard] = []
+        self.history_played_cards = []
         self.card2player = {}
         # keeps track of the players 'winning cards'
         self.player2stack = {player: [] for player in range(self.NUM_PLAYERS)}
@@ -131,6 +132,15 @@ class JassRound(object):
         state["legal_actions"] = self.get_legal_actions(players, player_id)
         state["trump"] = self.trump
         return state
+
+    def get_observation(self, state):
+        observation = {}
+        observation["hand"] = state["hand"]
+        observation["played_cards"] = state["played_cards"]
+        observation["history_played_cards"] = self.history_played_cards
+        observation["trump"] = state["trump"]
+        return observation
+
 
     def proceed_round(self, players, action):
         if isinstance(self.current_player, float):
@@ -234,6 +244,8 @@ class JassRound(object):
         self.round_points[stich_winner] += score
         self.stich_winner = winner  # only track winning player, not team
         # self.current_player = winner  # winner opens the next stich
+        #create history of cards played
+        self.history_played_cards = history_played_cards.append(played_cards)
         self.played_cards = []  # clear played cards
         return winner
 
