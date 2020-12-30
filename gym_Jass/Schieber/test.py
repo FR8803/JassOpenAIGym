@@ -1,6 +1,4 @@
-import gym
-from gym import error, spaces, utils
-from Schieber.round import JassRound
+from gym import spaces
 
 observation_space = spaces.Box(low=0, high=1, shape=(48, 13,), dtype=int)
 observation_space2 = spaces.Box(low=0, high=600, shape=(22,), dtype=int)

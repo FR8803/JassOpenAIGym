@@ -1,26 +1,26 @@
 import gym
+import numpy as np
 from gym import error, spaces, utils
 from gym.utils import seeding
-
-from Schieber.game import JassGame
-from Schieber.card import JassCard, JassSuits
-from Schieber.DEBUG import DEBUG
-from Schieber.dealer import JassDealer
-from Schieber.player import JassPlayer
-from Schieber.round import JassRound, Trumps
+import gym_Jass.Schieber as Schieber
+from gym_Jass.Schieber.game import JassGame
+from gym_Jass.Schieber.card import JassCard, JassSuits
+from gym_Jass.Schieber.DEBUG import DEBUG
+from gym_Jass.Schieber.dealer import JassDealer as dealer
+from gym_Jass.Schieber.player import JassPlayer
+from gym_Jass.Schieber.round import JassRound, Trumps
 
 
 class JassEnv(gym.Env):
   metadata = {'render.modes': ['human']}
 
   def __init__(self):
-  #self.players: [JassPlayer] = []
-  #self.players = [JassPlayer(i, self.np_random) for i in range(self.num_players)]
-  #player_id = self.round.current_player
-  #played cards: 1-3 for number of cards on the table, players hand: 1-9, trump 1-4, history_played_cards 4 - 36
+    round = JassRound(dealer, np_random, round_counter, team_scores=None)
+    players = JassGame().players
+    player_id = round.current_player
     self.observation_space = spaces.Box(low=0, high=1, shape=(52, 13,), dtype=int)
   #returns all legal actions a player has
-    self._action_set = self.round.get_legal_actions(players, player_id)
+    self._action_set = JassRound.get_legal_actions(players, player_id)
   #returns the space of legal action, e.g. Discrete (8) returns a set with 8 elements {0, 1, 2, ..., 7}
     self.action_space =  spaces.Discrete(len(self._action_set))
 

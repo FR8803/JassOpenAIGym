@@ -1,6 +1,6 @@
-from Schieber.card import JassCard, JassSuits
-from Schieber.player import JassPlayer
-from Schieber.round import Trumps, TRUMPF, UNDENUFE
+from gym_Jass.Schieber.card import JassCard, JassSuits
+from gym_Jass.Schieber.player import JassPlayer
+from gym_Jass.Schieber.round import Trumps, TRUMPF, UNDENUFE
 
 
 class DEBUG:

@@ -1,4 +1,4 @@
-from Schieber.card import init_swiss_deck
+from gym_Jass.Schieber.card import init_swiss_deck
 
 
 class JassDealer(object):

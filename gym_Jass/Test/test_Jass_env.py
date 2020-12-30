@@ -1,5 +1,8 @@
 import gym
-env = gym.make("Jass-v0")
+from gym import envs
+import gym_Jass.envs.Jass_env
+
+env = gym.make('Jass-v0')
 for i_episode in range(20):
     observation = env.reset()
     for t in range(100):

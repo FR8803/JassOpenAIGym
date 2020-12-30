@@ -1,6 +1,6 @@
 import numpy as np
 
-from Schieber.card import JassSuits, JassCard
+from gym_Jass.Schieber.card import JassSuits, JassCard
 
 valid_rank = ["Ass", "König", "Ober", "Under", "Banner", "9", "8", "7", "6"]
 valid_suit = [suit for suit in JassSuits]

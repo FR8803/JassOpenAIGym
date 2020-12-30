@@ -1,7 +1,7 @@
 from enum import Enum
 
-from Schieber.card import JassSuits, JassCard
-from Schieber.util import cards2list
+from gym_Jass.Schieber.card import JassSuits, JassCard
+from gym_Jass.Schieber.util import cards2list
 
 
 class Trumps(Enum):
