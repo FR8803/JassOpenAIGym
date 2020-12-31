@@ -4,25 +4,52 @@ from gym import error, spaces, utils
 from gym.utils import seeding
 import gym_Jass.Schieber as Schieber
 from gym_Jass.Schieber.game import JassGame
-from gym_Jass.Schieber.card import JassCard, JassSuits
+from gym_Jass.Schieber.card import JassCard, JassSuits, init_swiss_deck
 from gym_Jass.Schieber.DEBUG import DEBUG
 from gym_Jass.Schieber.dealer import JassDealer as dealer
 from gym_Jass.Schieber.player import JassPlayer
 from gym_Jass.Schieber.round import JassRound, Trumps
 
+def get_card_encodings():
+  """
+  Returns the encoding of cards in Jass.
+  :return: A mapping of cards to their action ID, and a mapping of action ID to the card.
+  """
+  c = 0
+  out = {}
+  inverse = {}
+  for card in init_swiss_deck():
+    out[str(card)] = c
+    inverse[c] = str(card)
+    c += 1
+  for trump in Trumps:
+    out[f"STICH-{trump.value}"] = c
+    inverse[c] = f"STICH-{trump.value}"
+    c += 1
+  return out, inverse
+
+ACTION_SPACE, INVERSE_ACTION_SPACE = get_card_encodings()
 
 class JassEnv(gym.Env):
   metadata = {'render.modes': ['human']}
 
   def __init__(self):
-    round = JassRound(dealer, np_random, round_counter, team_scores=None)
-    players = JassGame().players
-    player_id = round.current_player
+    self.game = JassGame()
+    #is there an initial reset when gym is made?
+    self.game.init_game()
+    self.players = self.game.players
+    self.current_player = self.game.get_player_id()
+    self.player_id = self.game.round.current_player
+
+
+    self.observation = {}
     self.observation_space = spaces.Box(low=0, high=1, shape=(52, 13,), dtype=int)
-  #returns all legal actions a player has
-    self._action_set = JassRound.get_legal_actions(players, player_id)
-  #returns the space of legal action, e.g. Discrete (8) returns a set with 8 elements {0, 1, 2, ..., 7}
-    self.action_space =  spaces.Discrete(len(self._action_set))
+
+    self.action = None
+  #index of card in players hand, e.g. Discrete (9) returns a set with 8 elements {0, 1, 2, ..., 8}
+    self._action_set = self._get_legal_actions()
+    self.action_space = spaces.Discrete(len(self._action_set))
+
 
   '''From the OpenAI Gym doc (https://gym.openai.com/docs/#environments):
   what our actions are doing to the environment, step return four values (implementation of the action-environment loop):
@@ -33,38 +60,44 @@ class JassEnv(gym.Env):
   '''
   #reward after each stich
   def step(self, a):
-    reward = 0.0
-    action = self._action_set[a]
+    reward = 0
+    done = False
+    self.action = self._action_set[a]
 
-    #change this!
-    state = self.round.get_state(players, player_id)
-    observation = self.round.get_observation(state)
+    state = self.game.get_state(self.player_id)
+    observation = self.game.round.get_observation(state)
 
-    #reward only if agent receives it
-    if not self.round.played_cards:
-      self.stich_winner = self.round.stich_winner
-      reward += self.round.calculate_stich_points
-      done = True
-    else:
-      self.stich_winner = None
-      done = False
+    reward = self.get_payoffs()
 
     info = {}
     return observation, reward, done, info
 
+  def _get_legal_actions(self):
+    legal_actions = self.game.get_legal_actions()
+    legal_ids = [ACTION_SPACE[action] for action in legal_actions]
+    return legal_ids
 
+  def get_payoffs(self):
+    payoffs, _scores = self.game.get_payoffs()
+    return np.array(payoffs)
 
+  def _decode_action(self, action_id):
+    legal_ids = self._get_legal_actions()
+    if action_id in legal_ids:
+      return INVERSE_ACTION_SPACE[action_id]
+    return INVERSE_ACTION_SPACE[np.random.choice(legal_ids)]
 
   def reset(self):
     #resetting the environment and returning initial observation
-    self.done = False
-    state = self.round.get_state(players, player_id)
-    return self.round.get_observation(state)
+    #self.done = False
+    #self.game.init_game()
+    state = self.game.get_state(self.player_id)
+    return self.game.round.get_observation(state)
 
   def render(self, mode='human'):
     return None
 
 
   def close(self):
-    return none
+    return None
 
