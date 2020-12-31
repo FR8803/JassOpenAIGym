@@ -43,7 +43,8 @@ class JassEnv(gym.Env):
 
 
     self.observation = {}
-    self.observation_space = spaces.Box(low=0, high=1, shape=(52, 13,), dtype=int)
+    #1-9 players hand, 1-3 played cards, 4-36 history played cards, 1-7 Trumps
+    self.observation_space = spaces.Box(low=0, high=1, shape=(54, 13,), dtype=int)
 
     self.action = None
   #index of card in players hand, e.g. Discrete (9) returns a set with 8 elements {0, 1, 2, ..., 8}
