@@ -212,7 +212,7 @@ class JassRound(object):
             self.game_over = True
             winner = sorted(self.round_points.items(), key=lambda k: k[1], reverse=True)[0][0]
             self.game_winner = winner
-            return game_over
+            return self.game_over
 
     def sort_cards(self, cards):
         if self.trump == Trumps.OBENABE:
@@ -245,7 +245,7 @@ class JassRound(object):
         self.stich_winner = winner  # only track winning player, not team
         # self.current_player = winner  # winner opens the next stich
         #create history of cards played
-        self.history_played_cards = history_played_cards.append(played_cards)
+        self.history_played_cards += self.played_cards
         self.played_cards = []  # clear played cards
         return winner
 

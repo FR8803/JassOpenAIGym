@@ -1,14 +1,10 @@
 import gym
 import numpy as np
 from gym import error, spaces, utils
-from gym.utils import seeding
-import gym_Jass.Schieber as Schieber
+
 from gym_Jass.Schieber.game import JassGame
-from gym_Jass.Schieber.card import JassCard, JassSuits, init_swiss_deck
-from gym_Jass.Schieber.DEBUG import DEBUG
-from gym_Jass.Schieber.dealer import JassDealer as dealer
-from gym_Jass.Schieber.player import JassPlayer
-from gym_Jass.Schieber.round import JassRound, Trumps
+from gym_Jass.Schieber.card import init_swiss_deck
+from gym_Jass.Schieber.round import Trumps
 
 def get_card_encodings():
   """
@@ -37,19 +33,21 @@ class JassEnv(gym.Env):
     self.game = JassGame()
     #is there an initial reset when gym is made?
     self.game.init_game()
-    self.players = self.game.players
-    self.current_player = self.game.get_player_id()
-    self.player_id = self.game.round.current_player
 
+    self.players = self.game.players
+    # self.current_player = self.game.get_player_id()
+    self.player_id = self.game.round.current_player
+    # print(self.player_id)
 
     self.observation = {}
     #1-9 players hand, 1-3 played cards, 4-36 history played cards, 1-7 Trumps
     self.observation_space = spaces.Box(low=0, high=1, shape=(54, 13,), dtype=int)
 
-    self.action = None
-  #index of card in players hand, e.g. Discrete (9) returns a set with 8 elements {0, 1, 2, ..., 8}
     self._action_set = self._get_legal_actions()
     self.action_space = spaces.Discrete(len(self._action_set))
+
+    self.action = None
+
 
 
   '''From the OpenAI Gym doc (https://gym.openai.com/docs/#environments):
@@ -61,17 +59,29 @@ class JassEnv(gym.Env):
   '''
   #reward after each stich
   def step(self, a):
+    action_set = self._get_legal_actions()
+
     reward = 0
     done = False
-    self.action = self._action_set[a]
 
-    state = self.game.get_state(self.player_id)
-    observation = self.game.round.get_observation(state)
+    action = self._decode_action(action_set[a])
 
-    reward = self.get_payoffs()
+    self.observation, player_id = self.game.step(action)
+
+
+    next_action_set = self._get_legal_actions()
+    self.action_space = spaces.Discrete(len(next_action_set))
+
+    print("left", self.game.round.round_over)
+    print("left2", self.game.is_round_over())
+
+    #after a complete game
+    if self.game.is_over():
+      reward = self.get_payoffs()
+      done = True
 
     info = {}
-    return observation, reward, done, info
+    return self.observation, reward, done, info
 
   def _get_legal_actions(self):
     legal_actions = self.game.get_legal_actions()
@@ -80,6 +90,7 @@ class JassEnv(gym.Env):
 
   def get_payoffs(self):
     payoffs, _scores = self.game.get_payoffs()
+    print(np.array(payoffs))
     return np.array(payoffs)
 
   def _decode_action(self, action_id):
@@ -92,8 +103,9 @@ class JassEnv(gym.Env):
     #resetting the environment and returning initial observation
     #self.done = False
     #self.game.init_game()
-    state = self.game.get_state(self.player_id)
-    return self.game.round.get_observation(state)
+    #state = self.game.get_state(self.player_id)
+    #return self.game.round.get_observation(state)
+    return self.game.init_game()
 
   def render(self, mode='human'):
     return None

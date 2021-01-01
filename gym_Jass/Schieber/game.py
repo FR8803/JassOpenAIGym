@@ -72,6 +72,7 @@ class JassGame(object):
         self.round.proceed_round(self.players, action)
         player_id = self.round.current_player
         state = self.get_state(player_id)
+        observation = self.round.get_observation(state)
 
         # get stich_winner if played cards is empty so it can be passed to frontend
         if not self.round.played_cards:
@@ -101,7 +102,7 @@ class JassGame(object):
             self.round = JassRound(self.dealer, self.np_random, counter, team_scores)
             # self.round.prev_player = prev_player
             # self.round.current_player = self.stich_winner
-        return state, player_id
+        return observation, player_id
 
     def step_back(self):
         """
@@ -150,7 +151,7 @@ class JassGame(object):
         # WORKS:
         return self.is_game_over()
         # EXPERIMENTAL, COULD BREAK THE UNIVERSE:
-        # return self.is_round_over()
+        #return self.is_round_over()
 
     def get_player_id(self):
         return self.round.current_player
