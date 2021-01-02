@@ -72,8 +72,7 @@ class JassEnv(gym.Env):
     next_action_set = self._get_legal_actions()
     self.action_space = spaces.Discrete(len(next_action_set))
 
-    print("left", self.game.round.round_over)
-    print("left2", self.game.is_round_over())
+
 
     #after a complete game
     if self.game.is_over():
