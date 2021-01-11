@@ -100,23 +100,18 @@ class JassEnv(gym.Env):
     return INVERSE_ACTION_SPACE[np.random.choice(legal_ids)]
 
   def _extract_state(self, state):
+    #returns a players hand, in first array a 1 if he has a card and a zero if he doesn't have it and in then the second array the opposite
     obs = np.zeros((4, 4, 9), dtype=int)
     encode_cards(obs[:2], state["hand"])
     encode_cards(obs[2:], [str(x[1]) for x in state["played_cards"]])
-    legal_action_id = self._get_legal_actions()
-    extracted_state = {"obs": obs, "legal_actions": legal_action_id}
-    extracted_state["raw_obs"] = state
-    extracted_state["raw_legal_actions"] = [a for a in state["legal_actions"]]
-    return extracted_state
+    return obs
 
   def reset(self):
     #resetting the environment and returning initial observation
-    #self.done = False
-    #self.game.init_game()
     self.game.init_game()
     state = self.game.get_state(self.player_id)
     state = self._extract_state(state)
-    #return self.game.round.get_observation(state)
+    print(state)
     return state
 
   def render(self, mode='human'):
