@@ -62,7 +62,6 @@ class JassEnv(gym.Env):
   def step(self, a):
     action_set = self._get_legal_actions()
 
-    reward = 0.0
     done = False
 
     action = self._decode_action(action_set[a])
@@ -77,11 +76,11 @@ class JassEnv(gym.Env):
 
     #after a complete game
     if self.game.is_over():
-      reward = self.get_payoffs()
+      self.reward = self.get_payoffs()
       done = True
 
     info = {}
-    return self.observation, reward, done, info
+    return self.observation, self.reward, done, info
 
   def _get_legal_actions(self):
     legal_actions = self.game.get_legal_actions()
@@ -108,13 +107,17 @@ class JassEnv(gym.Env):
 
   def reset(self):
     #resetting the environment and returning initial observation
+    self.reward = 0.0
+    self.discount = 1.0
     self.game.init_game()
     #self.state =np.zeros((4, 4, 9), dtype=int)
     self.state = self.game.get_state(self.player_id)
     self.state = self._extract_state(self.state)
     arr = np.array(self.state).astype("float64")
-    print(arr)
+    print(arr.dtype)
     return arr
+
+
   def render(self, mode='human'):
     return None
 
