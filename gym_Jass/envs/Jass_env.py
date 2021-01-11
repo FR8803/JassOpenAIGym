@@ -40,7 +40,7 @@ class JassEnv(gym.Env):
     self.player_id = self.game.round.current_player
     # print(self.player_id)
 
-    self.observation = {}
+    self.observation = []
     #1-9 players hand, 1-3 played cards, 4-36 history played cards, 1-7 Trumps
     self.observation_space = spaces.Box(low=0, high=1, shape=(54, 13,), dtype=int)
 
