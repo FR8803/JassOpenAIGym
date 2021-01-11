@@ -109,9 +109,12 @@ class JassEnv(gym.Env):
   def reset(self):
     #resetting the environment and returning initial observation
     self.game.init_game()
-    state = self.game.get_state(self.player_id)
-    state = self._extract_state(state)
-    return np.array(state)
+    self.state =np.zeros((4, 4, 9), dtype=int)
+    #self.state = self.game.get_state(self.player_id)
+    #self.state = self._extract_state(self.state)
+    #print(np.array(self.state))
+    print(self.state.tolist())
+    return self.state.tolist()
 
   def render(self, mode='human'):
     return None
