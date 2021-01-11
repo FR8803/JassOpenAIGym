@@ -5,6 +5,7 @@ from gym import error, spaces, utils
 from gym_Jass.Schieber.game import JassGame
 from gym_Jass.Schieber.card import init_swiss_deck
 from gym_Jass.Schieber.round import Trumps
+from gym_Jass.Schieber.util import encode_cards
 
 def get_card_encodings():
   """
@@ -98,14 +99,25 @@ class JassEnv(gym.Env):
       return INVERSE_ACTION_SPACE[action_id]
     return INVERSE_ACTION_SPACE[np.random.choice(legal_ids)]
 
+  def _extract_state(self, state):
+    obs = np.zeros((4, 4, 9), dtype=int)
+    encode_cards(obs[:2], state["hand"])
+    encode_cards(obs[2:], [str(x[1]) for x in state["played_cards"]])
+    legal_action_id = self._get_legal_actions()
+    extracted_state = {"obs": obs, "legal_actions": legal_action_id}
+    extracted_state["raw_obs"] = state
+    extracted_state["raw_legal_actions"] = [a for a in state["legal_actions"]]
+    return extracted_state
+
   def reset(self):
     #resetting the environment and returning initial observation
     #self.done = False
     #self.game.init_game()
-    state = self.game.get_state(self.player_id)
-    #return self.game.round.get_observation(state)
     self.game.init_game()
-    return np.array(state)
+    state = self.game.get_state(self.player_id)
+    state = self._extract_state(state)
+    #return self.game.round.get_observation(state)
+    return state
 
   def render(self, mode='human'):
     return None
