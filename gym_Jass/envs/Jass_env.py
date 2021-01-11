@@ -111,8 +111,7 @@ class JassEnv(gym.Env):
     self.game.init_game()
     state = self.game.get_state(self.player_id)
     state = self._extract_state(state)
-    print(state)
-    return state
+    return np.array(state)
 
   def render(self, mode='human'):
     return None
