@@ -102,9 +102,10 @@ class JassEnv(gym.Env):
     #resetting the environment and returning initial observation
     #self.done = False
     #self.game.init_game()
-    #state = self.game.get_state(self.player_id)
+    state = self.game.get_state(self.player_id)
     #return self.game.round.get_observation(state)
-    return self.game.init_game()
+    self.game.init_game()
+    return self.game.round.get_observation(state)
 
   def render(self, mode='human'):
     return None
