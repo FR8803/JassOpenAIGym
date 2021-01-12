@@ -89,7 +89,6 @@ class JassEnv(gym.Env):
 
   def get_payoffs(self):
     payoffs, _scores = self.game.get_payoffs()
-    print(np.array(payoffs))
     return np.array(payoffs)
 
   def _decode_action(self, action_id):
@@ -99,23 +98,25 @@ class JassEnv(gym.Env):
     return INVERSE_ACTION_SPACE[np.random.choice(legal_ids)]
 
   def _extract_state(self, state):
-    #returns a players hand, in first array a 1 if he has a card and a zero if he doesn't have it and in then the second array the opposite
+    # returns a players hand, in first array a 1 if he has a card and a zero if he doesn't have it and in then the second array the opposite
     obs = np.zeros((4, 4, 9), dtype=int)
     encode_cards(obs[:2], state["hand"])
     encode_cards(obs[2:], [str(x[1]) for x in state["played_cards"]])
-    return obs
+    legal_action_id = self._get_legal_actions()
+    extracted_state = {"obs": obs, "legal_actions": legal_action_id}
+    return extracted_state
+
 
   def reset(self):
     #resetting the environment and returning initial observation
-    self.reward = 0.0
-    self.discount = 1.0
     self.game.init_game()
+    self.reward = 0.0
     #self.state =np.zeros((4, 4, 9), dtype=int)
     self.state = self.game.get_state(self.player_id)
     self.state = self._extract_state(self.state)
-    arr = np.array(self.state).astype("float64")
-    print(arr.dtype)
-    return arr
+    self.state = np.array(self.state)
+    print(self.state)
+    return self.state
 
 
   def render(self, mode='human'):
