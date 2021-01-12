@@ -129,6 +129,7 @@ class JassRound(object):
             if player.player_id != player_id:
                 others_hand.extend(player.hand)
         state["others_hand"] = cards2list(others_hand)
+        state["history_played_cards"] = self.history_played_cards
         state["legal_actions"] = self.get_legal_actions(players, player_id)
         state["trump"] = self.trump
         return state
@@ -137,7 +138,7 @@ class JassRound(object):
         observation = {}
         observation["hand"] = state["hand"]
         observation["played_cards"] = state["played_cards"]
-        observation["history_played_cards"] = self.history_played_cards
+        observation["history_played_cards"] = state["history_played_cards"]
         observation["trump"] = state["trump"]
         return observation
 

@@ -15,6 +15,16 @@ def cards2list(cards: [JassCard]):
         cards_list.append(str(card))
     return cards_list
 
+def cards2dict(cards: [JassCard]):
+    cards_dict = {}
+    for card in cards:
+        if card not in cards_dict:
+            cards_dict[card] = 1
+        else:
+            cards_dict[card] += 1
+    return cards_dict
+
+
 
 def hand2dict(hand):
     hand_dict = {}
@@ -32,15 +42,29 @@ def encode_cards(plane, cards):
     # example: plane[0]["könig"]["rosen"] = 1
     # player has a count of "0" für "könig" of "rosen"
     plane[0] = np.ones((4, 9), dtype=int)
-    cards = hand2dict(cards)
-    for card, count in cards.items():
-        card_info = card.split("-")
-        rank = card_info[0]
-        suit = card_info[1]
-        rank = RANK_MAP[rank]
-        suit = SUIT_MAP[suit]
-        plane[0][suit][rank] = 0
-        plane[count][suit][rank] = 1
+    for i in range(len(plane)):
+        if i <= 4:
+            cards = hand2dict(cards)
+            print(cards)
+            for card, count in cards.items():
+                card_info = card.split("-")
+                rank = card_info[0]
+                suit = card_info[1]
+                rank = RANK_MAP[rank]
+                suit = SUIT_MAP[suit]
+                plane[0][suit][rank] = 0
+                plane[count][suit][rank] = 1
+    else:
+        cards = cards2dict(cards)
+        print(cards)
+        for card, count in cards.items():
+            card_info = card.split("-")
+            rank = card_info[0]
+            suit = card_info[1]
+            rank = RANK_MAP[rank]
+            suit = SUIT_MAP[suit]
+            plane[0][suit][rank] = 0
+            plane[count][suit][rank] = 1
     return plane
 
 
