@@ -81,7 +81,6 @@ class JassEnv(gym.Env):
       done = True
 
     info = {}
-    print(np.array(self.state), np.array(self.reward), done, info)
     return np.array(self.state), np.array(self.reward), done, info
 
 
