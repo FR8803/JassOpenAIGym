@@ -102,7 +102,7 @@ class JassGame(object):
             self.round = JassRound(self.dealer, self.np_random, counter, team_scores)
             # self.round.prev_player = prev_player
             # self.round.current_player = self.stich_winner
-        return observation, player_id
+        return state, observation, player_id
 
     def step_back(self):
         """

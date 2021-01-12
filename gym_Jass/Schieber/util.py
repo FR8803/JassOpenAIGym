@@ -45,7 +45,6 @@ def encode_cards(plane, cards):
     for i in range(len(plane)):
         if i <= 4:
             cards = hand2dict(cards)
-            print(cards)
             for card, count in cards.items():
                 card_info = card.split("-")
                 rank = card_info[0]
@@ -56,7 +55,6 @@ def encode_cards(plane, cards):
                 plane[count][suit][rank] = 1
     else:
         cards = cards2dict(cards)
-        print(cards)
         for card, count in cards.items():
             card_info = card.split("-")
             rank = card_info[0]

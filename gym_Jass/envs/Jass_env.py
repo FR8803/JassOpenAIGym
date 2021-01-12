@@ -41,8 +41,8 @@ class JassEnv(gym.Env):
     # print(self.player_id)
 
     self.observation = []
-    #1-9 players hand, 1-3 played cards, 4-36 history played cards, 1-7 Trumps
-    self.observation_space = spaces.Box(low=0, high=1, shape=(54, 13,), dtype=int)
+    #1-9 players hand, 1-3 played cards in the current Stich, 4-36 history played cards
+    self.observation_space = spaces.Box(low=0, high=1, shape=(47, 13,), dtype=int)
 
     self._action_set = self._get_legal_actions()
     self.action_space = spaces.Discrete(len(self._action_set))
@@ -66,8 +66,9 @@ class JassEnv(gym.Env):
 
     action = self._decode_action(action_set[a])
 
-    self.observation, player_id = self.game.step(action)
+    self.state, self.observation, player_id = self.game.step(action)
 
+    self.state = self._extract_state(self.state)
 
     next_action_set = self._get_legal_actions()
     self.action_space = spaces.Discrete(len(next_action_set))
@@ -80,7 +81,8 @@ class JassEnv(gym.Env):
       done = True
 
     info = {}
-    return self.observation, self.reward, done, info
+    return np.array(self.state), np.array(self.reward), done, info
+
 
   def _get_legal_actions(self):
     legal_actions = self.game.get_legal_actions()
@@ -116,7 +118,6 @@ class JassEnv(gym.Env):
     self.state = self.game.get_state(self.player_id)
     self.state = self._extract_state(self.state)
     self.state = np.array(self.state)
-    print(self.state)
     return self.state
 
 
