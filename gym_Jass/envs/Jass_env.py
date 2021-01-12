@@ -81,6 +81,7 @@ class JassEnv(gym.Env):
       done = True
 
     info = {}
+    print(np.array(self.state), np.array(self.reward), done, info)
     return np.array(self.state), np.array(self.reward), done, info
 
 
@@ -101,13 +102,14 @@ class JassEnv(gym.Env):
 
   def _extract_state(self, state):
     # returns a players hand, in first array a 1 if he has a card and a zero if he doesn't have it and in then the second array the opposite
-    obs = np.zeros((6, 4, 9), dtype=int)
+    obs = np.zeros((7, 4, 9), dtype=int)
     encode_cards(obs[:2], state["hand"])
     encode_cards(obs[2:4], [str(x[1]) for x in state["played_cards"]])
     encode_cards(obs[4:6], [str(x[1]) for x in state["history_played_cards"]])
     legal_action_id = np.array(self._get_legal_actions())
-    extracted_state = {"obs": obs, "legal_actions": legal_action_id}
-    return extracted_state
+    x = len(legal_action_id)
+    obs[6, 0, 0: x] = legal_action_id
+    return obs
 
 
   def reset(self):
