@@ -111,7 +111,7 @@ class JassEnv(gym.Env):
       encode_cards(obs[6:8], [str(x) for x in legal_actions])
     else:
       pass
-    print(obs)
+    obs = obs.astype("float32")
     return obs
 
 
