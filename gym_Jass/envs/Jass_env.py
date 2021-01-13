@@ -42,16 +42,17 @@ class JassEnv(gym.Env):
 
     self.observation = []
     #1-9 players hand, 1-3 played cards in the current Stich, 4-36 history played cards
-    self.observation_space = spaces.Box(low=0, high=1, shape=(47, 13,), dtype=int)
+    self.observation_space = spaces.Box(low=0, high=1, shape=(8, 4, 9), dtype=int)
 
     self._action_set = self._get_legal_actions()
     self.action_space = spaces.Discrete(len(self._action_set))
+
 
     self.action = None
 
 
 
-  '''From the OpenAI Gym doc (https://gym.openai.com/docs/#environments):
+  '''From the OpenAI Gym doc (https://gym.openai.com/do cs/#environments):
   what our actions are doing to the environment, step return four values (implementation of the action-environment loop):
   1. observation (object) -> an environment-specific object representing your observation of the environment. e.g. the board state in a board game.
   2. reward (float) -> reward achieved trough action
@@ -81,6 +82,7 @@ class JassEnv(gym.Env):
       done = True
 
     info = {}
+    print(np.array(self.state), np.array(self.reward), done, info)
     return np.array(self.state), np.array(self.reward), done, info
 
 
@@ -111,7 +113,7 @@ class JassEnv(gym.Env):
       encode_cards(obs[6:8], [str(x) for x in legal_actions])
     else:
       pass
-    obs = obs.astype("float32")
+    obs = obs.astype("int64")
     return obs
 
 
