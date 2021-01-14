@@ -127,7 +127,11 @@ class JassEnv(gym.Env):
     #resetting the environment and returning initial observation
     self.game.init_game()
     #after resetting the game, the first action will be choosing between the seven Stiche
-    self.action_space = spaces.Discrete(7)
+    self.action_space = spaces.Box(
+      low = 0,
+      high=6, shape=(1,),
+      dtype=int
+    )
     self.reward = 0.0
     #self.state =np.zeros((4, 4, 9), dtype=int)
     self.state = self.game.get_state(self.player_id)
