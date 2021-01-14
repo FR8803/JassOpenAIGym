@@ -65,15 +65,26 @@ class JassEnv(gym.Env):
 
     done = False
 
+    print(action_set)
     action = self._decode_action(action_set[a])
+
+
+    print(action)
 
     self.state, self.observation, player_id = self.game.step(action)
 
     self.state = self._extract_state(self.state)
 
-    next_action_set = self._get_legal_actions()
-    self.action_space = spaces.Discrete(len(next_action_set))
 
+    next_action_set = self._get_legal_actions()
+
+
+    if len(next_action_set) > 1:
+     self.action_space = spaces.Discrete(len(next_action_set)-1)
+    elif len(next_action_set) == 1:
+      self.action_space = spaces.Discrete(1)
+    else:
+      pass
 
 
     #after a complete game
@@ -82,7 +93,6 @@ class JassEnv(gym.Env):
       done = True
 
     info = {}
-    print(np.array(self.state), np.array(self.reward), done, info)
     return np.array(self.state), np.array(self.reward), done, info
 
 
