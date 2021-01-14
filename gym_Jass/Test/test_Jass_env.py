@@ -6,8 +6,7 @@ env = gym.make('Jass-v0')
 for i_episode in range(200):
     observation = env.reset()
     for t in range(1000):
-        action = env.action_space.sample()
-        print(action)
+        action = int(env.action_space.sample())
 
         observation, reward, done, info = env.step(action)
 
