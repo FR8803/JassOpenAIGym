@@ -44,6 +44,8 @@ class JassEnv(gym.Env):
     #1-9 players hand, 1-3 played cards in the current Stich, 4-36 history played cards
     self.observation_space = spaces.Box(low=0, high=1, shape=(8, 4, 9), dtype=int)
 
+    self.action_space = []
+
 
 
 
