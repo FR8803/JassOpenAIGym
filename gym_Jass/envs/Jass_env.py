@@ -68,7 +68,7 @@ class JassEnv(gym.Env):
   def step(self, a):
     assert self.action_space.contains(a)
 
-    done = False
+    done = None
 
     #action space is set to a length of 8, however if the number of legal actions is less and the agent chooses an action which isn't part of the legal actions, a random action is being chosen. This might have an effect on the learning process
     #to be checked
@@ -81,9 +81,10 @@ class JassEnv(gym.Env):
     #after a complete game
     if self.game.is_over():
       self.reward = self.get_payoffs()
-      done = True
+      done = bool(True)
 
     info = {}
+
     return np.array(self.state), np.array(self.reward), done, info
 
 
