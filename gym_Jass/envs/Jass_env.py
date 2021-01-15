@@ -44,11 +44,8 @@ class JassEnv(gym.Env):
     #1-9 players hand, 1-3 played cards in the current Stich, 4-36 history played cards
     self.observation_space = spaces.Box(low=0, high=1, shape=(8, 4, 9), dtype=int)
 
-    self.action_space = spaces.Box(
-      low=0,
-      high=6, shape=(1,),
-      dtype=int
-    )
+
+    self.action_space = spaces.Discrete(8)
 
 
 
@@ -69,6 +66,8 @@ class JassEnv(gym.Env):
   def step(self, a):
     action_set = self._get_legal_actions()
 
+    assert a in action_set, "%r (%s) invalid" % (a, type(a))
+
     done = False
 
     action = self._decode_action(action_set[a])
@@ -81,13 +80,7 @@ class JassEnv(gym.Env):
     self.state = self._extract_state(self.state)
 
 
-    next_action_set = self._get_legal_actions()
 
-    self.action_space = spaces.Box(
-      low = 0,
-      high=len(next_action_set)-1, shape=(1,),
-      dtype=int
-    )
 
 
     #after a complete game
@@ -135,17 +128,14 @@ class JassEnv(gym.Env):
     self.game.init_game()
     #after resetting the game, the first action will be choosing between the seven Stiche
 
-    self.action_space = spaces.Box(
-      low=0,
-      high=6, shape=(1,),
-      dtype=int
-    )
+
     self.reward = 0.0
     #self.state =np.zeros((4, 4, 9), dtype=int)
     self.state = self.game.get_state(self.player_id)
     self.state = self._extract_state(self.state)
     self.state = np.array(self.state)
     return self.state
+
 
   def close(self):
     return None
