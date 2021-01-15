@@ -54,7 +54,6 @@ class JassEnv(gym.Env):
 
 
 
-
     self.action = None
 
 
@@ -147,11 +146,6 @@ class JassEnv(gym.Env):
     self.state = self._extract_state(self.state)
     self.state = np.array(self.state)
     return self.state
-
-
-  def render(self, mode='human'):
-    return None
-
 
   def close(self):
     return None
