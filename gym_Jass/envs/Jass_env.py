@@ -80,10 +80,12 @@ class JassEnv(gym.Env):
 
     #after a complete game
     if self.game.is_over():
-      self.reward = self.get_payoffs()
-      done = bool(True)
+      self.reward = self.get_payoffs()[self.player_id]
+      done = True
+      print(self.reward)
 
     info = {}
+
 
     return np.array(self.state), np.array(self.reward), done, info
 
