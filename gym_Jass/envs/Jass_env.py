@@ -44,7 +44,11 @@ class JassEnv(gym.Env):
     #1-9 players hand, 1-3 played cards in the current Stich, 4-36 history played cards
     self.observation_space = spaces.Box(low=0, high=1, shape=(8, 4, 9), dtype=int)
 
-    self.action_space = []
+    self.action_space = spaces.Box(
+      low=0,
+      high=6, shape=(1,),
+      dtype=int
+    )
 
 
 
@@ -129,11 +133,11 @@ class JassEnv(gym.Env):
     #resetting the environment and returning initial observation
     self.game.init_game()
     #after resetting the game, the first action will be choosing between the seven Stiche
-    self.action_space = spaces.Box(
-      low = 0,
-      high=6, shape=(1,),
-      dtype=int
-    )
+    #self.action_space = spaces.Box(
+     # low = 0,
+      #high=6, shape=(1,),
+      #dtype=int
+    #)
     self.reward = 0.0
     #self.state =np.zeros((4, 4, 9), dtype=int)
     self.state = self.game.get_state(self.player_id)
