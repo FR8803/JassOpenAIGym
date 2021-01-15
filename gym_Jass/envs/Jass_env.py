@@ -44,7 +44,9 @@ class JassEnv(gym.Env):
     #1-9 players hand, 1-3 played cards in the current Stich, 4-36 history played cards
     self.observation_space = spaces.Box(low=0, high=1, shape=(8, 4, 9), dtype=int)
 
+    action_set = self._get_legal_actions()
 
+    #0-8 for each card in hand
     self.action_space = spaces.Discrete(8)
 
 
@@ -64,24 +66,17 @@ class JassEnv(gym.Env):
   '''
   #reward after each stich
   def step(self, a):
-    action_set = self._get_legal_actions()
-
-    assert a in action_set, "%r (%s) invalid" % (a, type(a))
+    assert self.action_space.contains(a)
 
     done = False
 
-    action = self._decode_action(action_set[a])
-
-
-
+    #action space is set to a length of 8, however if the number of legal actions is less and the agent chooses an action which isn't part of the legal actions, a random action is being chosen. This might have an effect on the learning process
+    #to be checked
+    action = self._decode_action(a)
 
     self.state, self.observation, player_id = self.game.step(action)
 
     self.state = self._extract_state(self.state)
-
-
-
-
 
     #after a complete game
     if self.game.is_over():
@@ -126,9 +121,6 @@ class JassEnv(gym.Env):
   def reset(self):
     #resetting the environment and returning initial observation
     self.game.init_game()
-    #after resetting the game, the first action will be choosing between the seven Stiche
-
-
     self.reward = 0.0
     #self.state =np.zeros((4, 4, 9), dtype=int)
     self.state = self.game.get_state(self.player_id)
