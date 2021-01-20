@@ -78,9 +78,6 @@ class JassEnv(gym.Env):
     if legal_action == True:
       self.reward += 0.001
 
-    else:
-      self.reward -= 0.001
-
     self.state, self.observation, player_id = self.game.step(action)
 
     self.state = self._extract_state(self.state)
@@ -90,9 +87,9 @@ class JassEnv(gym.Env):
     if self.game.is_over():
       self.reward += self.get_payoffs()[self.player_id]
       done = True
+      print(self.reward)
 
     info = {}
-    print(self.reward)
     return np.array(self.state), np.array(self.reward), done, info
 
 
