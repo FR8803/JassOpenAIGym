@@ -72,20 +72,26 @@ class JassEnv(gym.Env):
 
     #action space is set to a length of 8, however if the number of legal actions is less and the agent chooses an action which isn't part of the legal actions, a random action is being chosen. This might have an effect on the learning process
     #to be checked
-    action = self._decode_action(a)
+    action, legal_action = self._decode_action(a)
+
+    #this should encourage the agent to take legal actions
+    if legal_action == True:
+      self.reward += 0.01
+
+    else:
+      self.reward -= 0.01
 
     self.state, self.observation, player_id = self.game.step(action)
 
     self.state = self._extract_state(self.state)
 
+
     #after a complete game
     if self.game.is_over():
-      self.reward = self.get_payoffs()[self.player_id]
+      self.reward += self.get_payoffs()[self.player_id]
       done = True
-      print(self.reward)
 
     info = {}
-
 
     return np.array(self.state), np.array(self.reward), done, info
 
@@ -100,10 +106,13 @@ class JassEnv(gym.Env):
     return np.array(payoffs)
 
   def _decode_action(self, action_id):
+    legal_action = None
     legal_ids = self._get_legal_actions()
     if action_id in legal_ids:
-      return INVERSE_ACTION_SPACE[action_id]
-    return INVERSE_ACTION_SPACE[np.random.choice(legal_ids)]
+      legal_action = True
+      return INVERSE_ACTION_SPACE[action_id], legal_action
+    legal_action = False
+    return INVERSE_ACTION_SPACE[np.random.choice(legal_ids)], legal_action
 
   def _extract_state(self, state):
     # returns a players hand, in first array a 1 if he has a card and a zero if he doesn't have it and in then the second array the opposite
