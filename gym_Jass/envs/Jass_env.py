@@ -76,10 +76,10 @@ class JassEnv(gym.Env):
 
     #this should encourage the agent to take legal actions
     if legal_action == True:
-      self.reward += 0.01
+      self.reward += 0.001
 
     else:
-      self.reward -= 0.01
+      self.reward -= 0.001
 
     self.state, self.observation, player_id = self.game.step(action)
 
@@ -92,7 +92,7 @@ class JassEnv(gym.Env):
       done = True
 
     info = {}
-
+    print(self.reward)
     return np.array(self.state), np.array(self.reward), done, info
 
 
