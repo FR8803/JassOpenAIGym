@@ -38,7 +38,6 @@ class JassEnv(gym.Env):
     self.players = self.game.players
     # self.current_player = self.game.get_player_id()
     self.player_id = self.game.round.current_player
-    # print(self.player_id)
 
     self.observation = []
     #1-9 players hand, 1-3 played cards in the current Stich, 4-36 history played cards
@@ -91,11 +90,12 @@ class JassEnv(gym.Env):
     if self.game.is_over():
       self.reward += self.get_payoffs()[self.player_id]
       self.reward += self.rule_reward
+      print(self.reward)
       done = True
 
 
     info = {}
-    return np.array(self.state), np.array(self.reward), done, info
+    return np.array(self.state).astype(float), np.array(self.reward), done, info
 
 
   def _get_legal_actions(self):
