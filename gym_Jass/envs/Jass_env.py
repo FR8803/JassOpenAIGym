@@ -85,6 +85,8 @@ class JassEnv(gym.Env):
 
     self.state = self._extract_state(self.state)
 
+    self.state = np.array(self.state).astype(float)
+
 
     #after a complete game
     if self.game.is_over():
@@ -92,9 +94,8 @@ class JassEnv(gym.Env):
       self.reward += self.rule_reward
       done = True
 
-
     info = {}
-    return np.array(self.state).astype(float), np.array(self.reward).astype(float), done, info
+    return self.state, np.array(self.reward), done, info
 
 
   def _get_legal_actions(self):
