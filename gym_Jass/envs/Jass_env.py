@@ -90,12 +90,11 @@ class JassEnv(gym.Env):
     if self.game.is_over():
       self.reward += self.get_payoffs()[self.player_id]
       self.reward += self.rule_reward
-      print(self.reward)
       done = True
 
 
     info = {}
-    return np.array(self.state).astype(float), np.array(self.reward), done, info
+    return np.array(self.state).astype(float), np.array(self.reward).astype(float), done, info
 
 
   def _get_legal_actions(self):

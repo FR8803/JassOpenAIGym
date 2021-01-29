@@ -173,5 +173,12 @@ class JassGame(object):
         history = {k: [] for k in range(self.round.NUM_PLAYERS)}
         for stiche in self.stich_history:
             for k, v in stiche.items():
+                0.0
+                0.0
+                0.0
+
+                Process
+                finished
+                w
                 history[k].extend(v)
         return history
