@@ -32,7 +32,6 @@ class JassEnv(gym.Env):
 
   def __init__(self):
     self.game = JassGame()
-    #is there an initial reset when gym is made?
     self.game.init_game()
 
     self.players = self.game.players
@@ -40,8 +39,8 @@ class JassEnv(gym.Env):
     self.player_id = self.game.round.current_player
 
     self.observation = []
-    #1-9 players hand, 1-3 played cards in the current Stich, 4-36 history played cards
-    self.observation_space = spaces.Box(low=0, high=1, shape=(8, 4, 9), dtype=int)
+    #1-9 players hand, 1-3 played cards in the current Stich, 4-36 history played cards, 1-9 legal actions
+    self.observation_space = spaces.Box(low=0, high=1, shape=(4, 4, 9), dtype=int)
 
     action_set = self._get_legal_actions()
 
@@ -95,6 +94,7 @@ class JassEnv(gym.Env):
       done = True
 
     info = {}
+    print(self.state)
     return self.state, np.array(self.reward), done, info
 
 
@@ -128,7 +128,8 @@ class JassEnv(gym.Env):
       encode_cards(obs[6:8], [str(x) for x in legal_actions])
     else:
       pass
-    obs = obs.astype("int64")
+    # dropping 50% of the state, so that 1 signifies card "is in hand", "card has been played" or "is a legal action"
+    obs = np.delete(obs, [0, 2, 4, 6], 0)
     return obs
 
 

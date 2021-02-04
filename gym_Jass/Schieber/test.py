@@ -1,10 +1,4 @@
-from gym import spaces
-
-observation_space = spaces.Box(low=0, high=1, shape=(48, 13,), dtype=int)
-observation_space2 = spaces.Box(low=0, high=600, shape=(22,), dtype=int)
-print(observation_space)
-print(observation_space2)
-
-def step(self, action):
-    if not self.round.played_cards:
-        print(True)
+import numpy as np
+np.array = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+np.array =np.delete(np.array, [1, 2], 0)
+print(np.array)
