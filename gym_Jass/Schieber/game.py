@@ -1,3 +1,4 @@
+import copy
 from copy import deepcopy
 
 import numpy as np
@@ -34,6 +35,7 @@ class JassGame(object):
             always be left as None.
         :return: The state of the game and the ID of the current player.
         """
+        self.old_score = {(0, 2): 0, (1, 3): 0}
         if team_scores is None:
             team_scores = {(0, 2): 0, (1, 3): 0}
         self.payoffs = [-1 for _ in range(self.num_players)]
@@ -120,6 +122,10 @@ class JassGame(object):
         :return: The payoffs and the points for the current round.
         """
         score = self.round.round_points
+        #calculates the difference in points between the last and the current round
+        self.diff = {key: score[key] - self.old_score.get(key, 0)
+               for key in score.keys()}
+        self.old_score = copy.copy(score)
         score = sorted(score.items(), key=lambda k: k[1], reverse=True)
         winner, w_score = score[0]
         loser, l_score = score[1]
@@ -129,7 +135,7 @@ class JassGame(object):
         self.payoffs[winner[1]] = w_reward
         self.payoffs[loser[0]] = l_reward
         self.payoffs[loser[1]] = l_reward
-        return self.payoffs, self.round.round_points
+        return self.payoffs, self.round.round_points, self.diff
 
     def get_legal_actions(self):
         return self.round.get_legal_actions(self.players, self.round.current_player)
