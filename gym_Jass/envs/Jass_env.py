@@ -35,8 +35,9 @@ class JassEnv(gym.Env):
     self.game.init_game()
 
     self.players = self.game.players
-    # self.current_player = self.game.get_player_id()
-    self.player_id = self.game.round.current_player
+
+    #id of agent set to zero
+    self.player_id = 0
 
     self.observation = []
     #1-9 players hand, 1-3 played cards in the current Stich, 4-36 history played cards, 1-9 legal actions
@@ -55,7 +56,7 @@ class JassEnv(gym.Env):
     
     '''
 
-    self.reward_type = "Stich"
+    self.reward_type = "Round"
 
     if self.reward_type not in ["Game", "Hybrid", "Round", "Stich"]:
       raise ValueError("Invalid reward type")
@@ -75,77 +76,85 @@ class JassEnv(gym.Env):
 
     done = None
 
-    #action space is set to a length of 8, however if the number of legal actions is less and the agent chooses an action which isn't part of the legal actions, a random action is being chosen. This might have an effect on the learning process
-    #to be checked
-    action, legal_action = self._decode_action(a)
+    info = {}
 
-    #this should encourage the agent to take legal actions
-    if legal_action == True:
-      self.rule_reward += 0.0001
+    #player 0 is being trained, while the other players take random actions
+    current_player = self.game.round.current_player
+    if current_player in [1, 2, 3]:
+      action = self.opponent_or_team_member_play()
+      self.game.step(action)
+
 
     else:
-      self.rule_reward -= 0.0001
+      #action space is set to a length of 8, however if the number of legal actions is less and the agent chooses an action which isn't part of the legal actions, a random action is being chosen. This might have an effect on the learning process
+      action, legal_action = self._decode_action(a)
 
+      #this should encourage the agent to take legal actions
+      if legal_action == True:
+        self.rule_reward += 0.0001
 
+      else:
+        self.rule_reward -= 0.0001
 
-    self.state, _ , player_id = self.game.step(action)
+      #state, _, _ = self.game.step(action)
+      #observation = self._extract_observation(state)
+      #print("OBS1", observation)
 
+      self.game.step(action)
+      self.state = self.game.get_state(self.player_id)
+      self.observation = self._extract_observation(self.state)
 
+      self.observation = np.array(self.observation).astype(float)
 
-    self.observation = self._extract_observation(self.state)
+      # played cards is empty which means, that a Stich is over
+      if not self.game.round.played_cards:
+        if self.reward_type == "Round":
+          #history_played_cards is being reset to 0 after every round
+          if len(self.state["history_played_cards"]) == 0:
+            #returns the difference in points between the current and last round
+            _, _, diff = self.get_payoffs()
+            if diff[0, 2] != 0 or diff[1, 3] != 0:
+              #to keep the reward within 0 and 1
+              self.reward = diff[0, 2] / (diff[0, 2] + diff[1, 3])
+              if self.player_id == 1 or self.player_id == 3:
+                self.reward = 1 - self.reward
+              self.reward += self.rule_reward
+              done = True
 
-    self.observation = np.array(self.observation).astype(float)
-
-    # played cards is empty which means, that a Stich is over
-    if not self.game.round.played_cards:
-      if self.reward_type == "Round":
-        done = True
-        #if hand is empty it means that the round is over
-        if self.state["hand"] == []:
-          #returns the difference in points between the current and last round
+        elif self.reward_type == "Stich":
+          #returns the difference in points between the current and last stich
           _, _, diff = self.get_payoffs()
-          #to keep the reward within 0 and 1
-          self.reward = diff[0, 2] / (diff[0, 2] + diff[1, 3])
-          if self.player_id == 1 or self.player_id == 3:
-            self.reward = 1 - self.reward
-          self.reward += self.rule_reward
-
-      elif self.reward_type == "Stich":
-        #returns the difference in points between the current and last stich
-        _, _, diff = self.get_payoffs()
-        if diff[0, 2] != 0 or diff[1, 3] != 0:
-          if self.player_id == 0 or self.player_id == 2:
-            self.reward = diff[0, 2] / 157
-          else:
-            self.reward = diff[1, 3] / 157
-            #fix: reward can become slightly negative due to rule reward
-          self.reward += self.rule_reward
-          done = True
-      else:
-        pass
-
-    #after a complete game
-    if self.game.is_over():
-      payoffs, _, _ = self.get_payoffs()
-      if self.reward_type == "Hybrid":
-        self.reward += payoffs[self.player_id]
-        self.reward += self.rule_reward
-
-      elif self.reward_type == "Game":
-        #if the payoff of a player is bigger than 0.5 this means that he won more than 50% of the points and is therefore a winner
-        if payoffs[self.player_id] > 0.5:
-          self.reward += 1
-          self.reward += self.rule_reward
+          if diff[0, 2] != 0 or diff[1, 3] != 0:
+            if self.player_id == 0 or self.player_id == 2:
+              self.reward = diff[0, 2] / 157
+            else:
+              self.reward = diff[1, 3] / 157
+              #fix: reward can become slightly negative due to rule reward
+            self.reward += self.rule_reward
+            done = True
         else:
-          self.reward = 0
+          pass
+
+      #after a complete game
+      if self.game.is_over():
+        done = True
+        payoffs, _, _ = self.get_payoffs()
+        if self.reward_type == "Hybrid":
+          self.reward += payoffs[self.player_id]
           self.reward += self.rule_reward
-      done = True
 
-      else:
-        pass
+        elif self.reward_type == "Game":
+          #if the payoff of a player is bigger than 0.5 this means that he won more than 50% of the points and is therefore a winner
+          if payoffs[self.player_id] > 0.5:
+            self.reward += 1
+            self.reward += self.rule_reward
+          else:
+            self.reward = 0
+            self.reward += self.rule_reward
 
+        else:
+          pass
 
-    info = {}
     return self.observation, np.array(self.reward), done, info
 
 
@@ -154,6 +163,12 @@ class JassEnv(gym.Env):
     legal_actions = self.game.get_legal_actions()
     legal_ids = [ACTION_SPACE[action] for action in legal_actions]
     return legal_ids
+
+  #returns a random legal action for the teammate and for the opponents
+  def opponent_or_team_member_play(self):
+    legal_ids = self._get_legal_actions()
+    return INVERSE_ACTION_SPACE[np.random.choice(legal_ids)]
+
 
   def get_payoffs(self):
     payoffs, _scores, diff = self.game.get_payoffs()
