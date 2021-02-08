@@ -56,7 +56,7 @@ class JassEnv(gym.Env):
     
     '''
 
-    self.reward_type = "Round"
+    self.reward_type = "Stich"
 
     if self.reward_type not in ["Game", "Hybrid", "Round", "Stich"]:
       raise ValueError("Invalid reward type")
@@ -77,6 +77,7 @@ class JassEnv(gym.Env):
     done = None
 
     info = {}
+    self.state = self.game.get_state(self.player_id)
 
     #player 0 is being trained, while the other players take random actions
     current_player = self.game.round.current_player
@@ -96,64 +97,59 @@ class JassEnv(gym.Env):
       else:
         self.rule_reward -= 0.0001
 
-      #state, _, _ = self.game.step(action)
-      #observation = self._extract_observation(state)
-      #print("OBS1", observation)
-
       self.game.step(action)
       self.state = self.game.get_state(self.player_id)
       self.observation = self._extract_observation(self.state)
-
       self.observation = np.array(self.observation).astype(float)
 
-      # played cards is empty which means, that a Stich is over
-      if not self.game.round.played_cards:
-        if self.reward_type == "Round":
-          #history_played_cards is being reset to 0 after every round
-          if len(self.state["history_played_cards"]) == 0:
-            #returns the difference in points between the current and last round
-            _, _, diff = self.get_payoffs()
-            if diff[0, 2] != 0 or diff[1, 3] != 0:
-              #to keep the reward within 0 and 1
-              self.reward = diff[0, 2] / (diff[0, 2] + diff[1, 3])
-              if self.player_id == 1 or self.player_id == 3:
-                self.reward = 1 - self.reward
-              self.reward += self.rule_reward
-              done = True
-
-        elif self.reward_type == "Stich":
-          #returns the difference in points between the current and last stich
-          _, _, diff = self.get_payoffs()
+    # played cards is empty which means, that a Stich is over
+    if not self.game.round.played_cards:
+      if self.reward_type == "Round":
+        #history_played_cards is being reset to 0 after every round
+        self.state = self.game.get_state(self.player_id)
+        if len(self.state["history_played_cards"]) == 0:
+          #returns the difference in points between the current and last round
+          test1, test2, diff = self.get_payoffs()
           if diff[0, 2] != 0 or diff[1, 3] != 0:
-            if self.player_id == 0 or self.player_id == 2:
-              self.reward = diff[0, 2] / 157
-            else:
-              self.reward = diff[1, 3] / 157
-              #fix: reward can become slightly negative due to rule reward
+            #to keep the reward within 0 and 1
+            self.reward = diff[0, 2] / (diff[0, 2] + diff[1, 3])
+            if self.player_id == 1 or self.player_id == 3:
+              self.reward = 1 - self.reward
             self.reward += self.rule_reward
             done = True
-        else:
-          pass
 
-      #after a complete game
-      if self.game.is_over():
-        done = True
-        payoffs, _, _ = self.get_payoffs()
-        if self.reward_type == "Hybrid":
-          self.reward += payoffs[self.player_id]
+      elif self.reward_type == "Stich":
+        #returns the difference in points between the current and last stich
+        test1, test2, diff = self.get_payoffs()
+        if diff[0, 2] != 0 or diff[1, 3] != 0:
+          if self.player_id == 0 or self.player_id == 2:
+            self.reward = diff[0, 2] / 157
+          else:
+            self.reward = diff[1, 3] / 157
+            #fix: reward can become slightly negative due to rule reward
+          self.reward += self.rule_reward
+          done = True
+
+
+    #after a complete game
+    if self.game.is_over():
+      done = True
+      payoffs, _, _ = self.get_payoffs()
+      if self.reward_type == "Hybrid":
+        self.reward += payoffs[self.player_id]
+        self.reward += self.rule_reward
+
+      elif self.reward_type == "Game":
+        #if the payoff of a player is bigger than 0.5 this means that he won more than 50% of the points and is therefore a winner
+        if payoffs[self.player_id] > 0.5:
+          self.reward += 1
+          self.reward += self.rule_reward
+        else:
+          self.reward = 0
           self.reward += self.rule_reward
 
-        elif self.reward_type == "Game":
-          #if the payoff of a player is bigger than 0.5 this means that he won more than 50% of the points and is therefore a winner
-          if payoffs[self.player_id] > 0.5:
-            self.reward += 1
-            self.reward += self.rule_reward
-          else:
-            self.reward = 0
-            self.reward += self.rule_reward
-
-        else:
-          pass
+      else:
+        pass
 
     return self.observation, np.array(self.reward), done, info
 
@@ -206,10 +202,11 @@ class JassEnv(gym.Env):
 
   def reset(self):
     #resetting the environment and returning initial observation
-    self.game.init_game()
     self.reward = 0.0
     self.rule_reward = 0.0
     self.state = self.game.get_state(self.player_id)
+    if len(self.state["history_played_cards"]) == 0:
+      self.game.init_game()
     self.observation = self._extract_observation(self.state)
     self.observation = np.array(self.observation)
     return self.observation
