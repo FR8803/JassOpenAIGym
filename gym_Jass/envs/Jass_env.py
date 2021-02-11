@@ -56,15 +56,16 @@ class JassEnv(gym.Env):
     
     '''
 
-    self.reward_type = "Stich"
+    self.reward_type = "Stich "
 
     if self.reward_type not in ["Game", "Hybrid", "Round", "Stich"]:
       raise ValueError("Invalid reward type")
 
     self.action = None
+    self.players_list = []
 
   '''From the OpenAI Gym doc (https://gym.openai.com/do cs/#environments):
-  what our actions are doing to the environment, step return four values (implementation of the action-environment loop):
+  what our actions are doing to the environment, step returns four values (implementation of the action-environment loop):
   1. observation (object) -> an environment-specific object representing your observation of the environment. e.g. the board state in a board game.
   2. reward (float) -> reward achieved trough action
   3. done (bool) -> whether environment has to be reseted again (end of an episode, when done == True)
@@ -79,6 +80,10 @@ class JassEnv(gym.Env):
     info = {}
     self.state = self.game.get_state(self.player_id)
 
+    #tracks the players who have played cards so far if all four players have played a card: cycle = True
+    if self.reward_type == "Stich":
+      cycle = self.check_player_cycle(self.state)
+
     #player 0 is being trained, while the other players take random actions
     current_player = self.game.round.current_player
     if current_player in [1, 2, 3]:
@@ -91,11 +96,11 @@ class JassEnv(gym.Env):
       action, legal_action = self._decode_action(a)
 
       #this should encourage the agent to take legal actions
-      if legal_action == True:
-        self.rule_reward += 0.0001
+      #if legal_action == True:
+      #  self.rule_reward += 0.0001
 
-      else:
-        self.rule_reward -= 0.0001
+      #else:
+       # self.rule_reward -= 0.0001
 
       self.game.step(action)
       self.state = self.game.get_state(self.player_id)
@@ -109,25 +114,26 @@ class JassEnv(gym.Env):
         self.state = self.game.get_state(self.player_id)
         if len(self.state["history_played_cards"]) == 0:
           #returns the difference in points between the current and last round
-          test1, test2, diff = self.get_payoffs()
+          _, _, diff = self.get_payoffs()
           if diff[0, 2] != 0 or diff[1, 3] != 0:
             #to keep the reward within 0 and 1
             self.reward = diff[0, 2] / (diff[0, 2] + diff[1, 3])
             if self.player_id == 1 or self.player_id == 3:
               self.reward = 1 - self.reward
-            self.reward += self.rule_reward
+            #self.reward += self.rule_reward
             done = True
 
       elif self.reward_type == "Stich":
         #returns the difference in points between the current and last stich
-        test1, test2, diff = self.get_payoffs()
-        if diff[0, 2] != 0 or diff[1, 3] != 0:
+        _, _, diff = self.get_payoffs()
+
+        if cycle == True:
           if self.player_id == 0 or self.player_id == 2:
             self.reward = diff[0, 2] / 157
           else:
             self.reward = diff[1, 3] / 157
             #fix: reward can become slightly negative due to rule reward
-          self.reward += self.rule_reward
+          #self.reward += self.rule_reward
           done = True
 
 
@@ -137,20 +143,19 @@ class JassEnv(gym.Env):
       payoffs, _, _ = self.get_payoffs()
       if self.reward_type == "Hybrid":
         self.reward += payoffs[self.player_id]
-        self.reward += self.rule_reward
+        #self.reward += self.rule_reward
 
       elif self.reward_type == "Game":
         #if the payoff of a player is bigger than 0.5 this means that he won more than 50% of the points and is therefore a winner
         if payoffs[self.player_id] > 0.5:
           self.reward += 1
-          self.reward += self.rule_reward
+          #self.reward += self.rule_reward
         else:
           self.reward = 0
-          self.reward += self.rule_reward
+          #self.reward += self.rule_reward
 
       else:
         pass
-
     return self.observation, np.array(self.reward), done, info
 
 
@@ -200,13 +205,32 @@ class JassEnv(gym.Env):
     legal_action = observation[3]
     return observation, legal_action
 
+  #checks whether each player has done an action in a round
+  def check_player_cycle(self, state):
+    cycle = False
+    if state["legal_actions"]:
+      if not state["legal_actions"][0].startswith("STICH-"):
+        self.players_list.append([state["current_player"]])
+    else:
+      self.players_list.append([state["current_player"]])
+    self.players_list.sort()
+    if self.players_list == [[0], [1], [2], [3]]:
+      cycle = True
+      self.players_list = []
+    return cycle
+
+
+
   def reset(self):
     #resetting the environment and returning initial observation
     self.reward = 0.0
-    self.rule_reward = 0.0
+    #self.rule_reward = 0.0
     self.state = self.game.get_state(self.player_id)
-    if len(self.state["history_played_cards"]) == 0:
+    if self.reward_type == "Hybrid" or self.reward_type == "Game":
       self.game.init_game()
+    else:
+      if len(self.state["history_played_cards"]) == 0:
+        self.game.init_game()
     self.observation = self._extract_observation(self.state)
     self.observation = np.array(self.observation)
     return self.observation
