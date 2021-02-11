@@ -56,7 +56,7 @@ class JassEnv(gym.Env):
     
     '''
 
-    self.reward_type = "Stich "
+    self.reward_type = "Stich"
 
     if self.reward_type not in ["Game", "Hybrid", "Round", "Stich"]:
       raise ValueError("Invalid reward type")
@@ -126,7 +126,6 @@ class JassEnv(gym.Env):
       elif self.reward_type == "Stich":
         #returns the difference in points between the current and last stich
         _, _, diff = self.get_payoffs()
-
         if cycle == True:
           if self.player_id == 0 or self.player_id == 2:
             self.reward = diff[0, 2] / 157
@@ -156,6 +155,7 @@ class JassEnv(gym.Env):
 
       else:
         pass
+    if done == True:
     return self.observation, np.array(self.reward), done, info
 
 
