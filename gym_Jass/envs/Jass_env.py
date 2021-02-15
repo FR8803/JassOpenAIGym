@@ -155,7 +155,7 @@ class JassEnv(gym.Env):
 
       else:
         pass
-    if done == True:
+
     return self.observation, np.array(self.reward), done, info
 
 
