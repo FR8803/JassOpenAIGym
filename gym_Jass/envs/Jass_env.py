@@ -56,10 +56,19 @@ class JassEnv(gym.Env):
     
     '''
 
-    self.reward_type = "Stich"
+    self.reward_type = "Round"
 
     if self.reward_type not in ["Game", "Hybrid", "Round", "Stich"]:
       raise ValueError("Invalid reward type")
+
+    '''Three different types of strategies:
+    Best-> Teammate and two opponents always play their best card (measured in the value of points a card has)
+    Random-> Teammate and two opponents always play a random card
+    Mixed->Teammate and one opponent play a random card, one opponent plays the best card
+    '''
+    self.strategy = "Mixed"
+    if self.strategy not in ["Random", "Best", "Mixed"]:
+      raise ValueError("Invalid strategy")
 
     self.action = None
     self.players_list = []
@@ -80,14 +89,16 @@ class JassEnv(gym.Env):
     info = {}
     self.state = self.game.get_state(self.player_id)
 
-    #tracks the players who have played cards so far if all four players have played a card: cycle = True
+
+    #tracks the players who have played cards so far if all four players have played a card: cycle = True and therefore a Stich is over
     if self.reward_type == "Stich":
       cycle = self.check_player_cycle(self.state)
 
     #player 0 is being trained, while the other players take random actions
     current_player = self.game.round.current_player
+
     if current_player in [1, 2, 3]:
-      action = self.opponent_or_team_member_play()
+      action = self.opponent_or_team_member_play(current_player)
       self.game.step(action)
 
 
@@ -163,12 +174,28 @@ class JassEnv(gym.Env):
   def _get_legal_actions(self):
     legal_actions = self.game.get_legal_actions()
     legal_ids = [ACTION_SPACE[action] for action in legal_actions]
-    return legal_ids
+    return legal_ids, legal_actions
 
   #returns a random legal action for the teammate and for the opponents
-  def opponent_or_team_member_play(self):
-    legal_ids = self._get_legal_actions()
-    return INVERSE_ACTION_SPACE[np.random.choice(legal_ids)]
+  def opponent_or_team_member_play(self, current_player):
+    legal_ids, legal_actions = self._get_legal_actions()
+    if not legal_actions[0].startswith("STICH-"):
+      if self.strategy == "Random":
+        return INVERSE_ACTION_SPACE[np.random.choice(legal_ids)]
+      elif self.strategy == "Best":
+        legal_actions_values = self.game.round.calculate_card_value(legal_actions)
+        card_max_value = max(legal_actions_values, key=legal_actions_values.get)
+        return card_max_value
+      elif self.strategy == "Mixed":
+        if current_player == 1 or current_player == 2:
+          return INVERSE_ACTION_SPACE[np.random.choice(legal_ids)]
+        elif current_player == 3:
+          legal_actions_values = self.game.round.calculate_card_value(legal_actions)
+          card_max_value = max(legal_actions_values, key=legal_actions_values.get)
+          return card_max_value
+    else:
+      return INVERSE_ACTION_SPACE[np.random.choice(legal_ids)]
+
 
 
   def get_payoffs(self):
@@ -178,7 +205,7 @@ class JassEnv(gym.Env):
 
   def _decode_action(self, action_id):
     legal_action = None
-    legal_ids = self._get_legal_actions()
+    legal_ids, legal_actions = self._get_legal_actions()
     if action_id in legal_ids:
       legal_action = True
       return INVERSE_ACTION_SPACE[action_id], legal_action
@@ -191,8 +218,7 @@ class JassEnv(gym.Env):
     encode_cards(obs[:2], state["hand"], "hand")
     encode_cards(obs[2:4], [str(x[1]) for x in state["played_cards"]], "hand")
     encode_cards(obs[4:6], [str(x[1]) for x in state["history_played_cards"]])
-    legal_actions = self.game.get_legal_actions()
-    legal_ids = self._get_legal_actions()
+    legal_ids, legal_actions = self._get_legal_actions()
     if legal_ids[0] < 36:
       encode_cards(obs[6:8], [str(x) for x in legal_actions])
     else:

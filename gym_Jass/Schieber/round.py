@@ -267,3 +267,25 @@ class JassRound(object):
                 # PANIC
                 raise Exception(">>> Trump was not properly set to valid value <<<")
         return score
+
+    def calculate_card_value(self, cards):
+        cards_dict = {}
+        for card in cards:
+            card_info = card.split("-")
+            rank = card_info[0]
+            suit = card_info[1]
+            if suit == self.trump.value:
+                cards_dict[card] = POINTS_TRUMPF[TRUMPF[rank]]
+            # color was chosen as trump, card is nebenfarbe
+            elif self.trump in [Trumps.SCHILTE, Trumps.EICHEL, Trumps.ROSE, Trumps.SCHELLE]:
+                cards_dict[card] = POINTS_NEBENFARBE[NEBENFARBE[rank]]
+            elif self.trump == Trumps.OBENABE:
+                cards_dict[card] = POINTS_OBENABE[OBENABE[rank]]
+            elif self.trump == Trumps.UNDENUFE:
+                cards_dict[card] = POINTS_UNDENUFE[UNDENUFE[rank]]
+            else:
+                # PANIC
+                raise Exception(">>> Trump was not properly set to valid value <<<")
+        return cards_dict
+
+
