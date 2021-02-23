@@ -64,6 +64,11 @@ def encode_cards(plane, cards, type = "other"):
             plane[count][suit][rank] = 1
     return plane
 
+def encode_stich(plane, stich):
+    Trumpf_pos = {x: i for i, x in enumerate(["Trumps.EICHEL", "Trumps.ROSE", "Trumps.SCHELLE", "Trumps.SCHILTE", "Trumps.OBENABE", "Trumps.UNDENUFE", "Trumps.GSCHOBE"])}
+    plane[0][Trumpf_pos[stich]] = 1
+    return plane
+
 
 def tournament(env, num):
     payoffs = [0] * env.player_num

@@ -5,7 +5,7 @@ from gym import error, spaces, utils
 from gym_Jass.Schieber.game import JassGame
 from gym_Jass.Schieber.card import init_swiss_deck
 from gym_Jass.Schieber.round import Trumps
-from gym_Jass.Schieber.util import encode_cards
+from gym_Jass.Schieber.util import encode_cards, encode_stich
 
 def get_card_encodings():
   """
@@ -40,17 +40,18 @@ class JassEnv(gym.Env):
     self.player_id = 0
 
     self.observation = []
-    #1-9 players hand, 1-3 played cards in the current Stich, 4-36 history played cards, 1-9 legal actions
-    self.observation_space = spaces.Box(low=0, high=1, shape=(4, 4, 9), dtype=int)
+    #1-9 players hand, 1-3 played cards in the current Stich, 4-36 history played cards, 1-9 legal actions, 1 Trump
+    self.observation_space = spaces.Box(low=0, high=1, shape=(5, 4, 9), dtype=int)
 
     action_set = self._get_legal_actions()
 
     #0-8 for each card in hand
     self.action_space = spaces.Discrete(8)
 
-    '''Three types of reward systems:
-    Game-> a reward of either 0 or 1 is given, if the game is either lost or won. This is probably the most sparse reward system of the three
-    Hybrid-> the reward is also being given at the end of the game, however the end reward depens on the performance of each Stich (by dividing a teams points by the total points that could have been reached)
+    '''Five types of reward systems:
+    Hybrid-> Reward after each round and a reward of 0.5 for winning the game
+    Game 0/1 -> a reward of either 0 or 1 is given, if the game is either lost or won. This is probably the most sparse reward system of the three
+    Game-> the reward is also being given at the end of the game, however the end reward depens on the performance of each Stich (by dividing a teams points by the total points that could have been reached)
     Round-> Points are being given after each Round (36 cards played), in order to keep the reward between 0 and 1 it is being divided by the sum of the points the two teams achieved
     Stich-> Points are being given after each Stich (4 cards played), which is then being divided by 157 (max points after 9 Stiche / one round) to keep the points within 0 and 1
     
@@ -58,7 +59,7 @@ class JassEnv(gym.Env):
 
     self.reward_type = "Round"
 
-    if self.reward_type not in ["Game", "Hybrid", "Round", "Stich"]:
+    if self.reward_type not in ["Game 0/1", "Game", "Hybrid", "Round", "Stich"]:
       raise ValueError("Invalid reward type")
 
     '''Three different types of strategies:
@@ -151,11 +152,11 @@ class JassEnv(gym.Env):
     if self.game.is_over():
       done = True
       payoffs, _, _ = self.get_payoffs()
-      if self.reward_type == "Hybrid":
+      if self.reward_type == "Game":
         self.reward += payoffs[self.player_id]
         #self.reward += self.rule_reward
 
-      elif self.reward_type == "Game":
+      elif self.reward_type == "Game 0/1":
         #if the payoff of a player is bigger than 0.5 this means that he won more than 50% of the points and is therefore a winner
         if payoffs[self.player_id] > 0.5:
           self.reward += 1
@@ -214,7 +215,7 @@ class JassEnv(gym.Env):
 
   def _extract_observation(self, state):
     # returns a players hand, in first array a 1 if he has a card and a zero if he doesn't have it and in then the second array the opposite
-    obs = np.zeros((8, 4, 9), dtype=int)
+    obs = np.zeros((9, 4, 9), dtype=int)
     encode_cards(obs[:2], state["hand"], "hand")
     encode_cards(obs[2:4], [str(x[1]) for x in state["played_cards"]], "hand")
     encode_cards(obs[4:6], [str(x[1]) for x in state["history_played_cards"]])
@@ -223,6 +224,8 @@ class JassEnv(gym.Env):
       encode_cards(obs[6:8], [str(x) for x in legal_actions])
     else:
       pass
+    if state["trump"] != None:
+      encode_stich(obs[8], str(state["trump"]))
     # dropping 50% of the state, so that 1 signifies card "is in hand", "card has been played" or "is a legal action"
     obs = np.delete(obs, [0, 2, 4, 6], 0)
     return obs
