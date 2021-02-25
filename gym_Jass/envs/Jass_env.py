@@ -40,7 +40,7 @@ class JassEnv(gym.Env):
     self.player_id = 0
 
     self.observation = []
-    #1-9 players hand, 1-3 played cards in the current Stich, 4-36 history played cards, 1-9 legal actions, 1 Trump
+    #1-9 players hand, 1-3 played cards in the current Stich, 4-36 history played cards, 1-9 legal actions, 1 current stich
     self.observation_space = spaces.Box(low=0, high=1, shape=(5, 4, 9), dtype=int)
 
     action_set = self._get_legal_actions()
@@ -85,88 +85,63 @@ class JassEnv(gym.Env):
   def step(self, a):
     assert self.action_space.contains(a)
 
+    self.reward = 0.0
+
+
     done = None
 
     info = {}
-    self.state = self.game.get_state(self.player_id)
 
 
-    #tracks the players who have played cards so far if all four players have played a card: cycle = True and therefore a Stich is over
-    if self.reward_type == "Stich":
-      cycle = self.check_player_cycle(self.state)
 
-    #player 0 is being trained, while the other players take random actions
-    current_player = self.game.round.current_player
+    #take the action chosen by the DQN agent
+    action, legal_action = self._decode_action(a)
+    self.game.step(action)
 
-    if current_player in [1, 2, 3]:
-      action = self.opponent_or_team_member_play(current_player)
-      self.game.step(action)
-
-
-    else:
-      #action space is set to a length of 8, however if the number of legal actions is less and the agent chooses an action which isn't part of the legal actions, a random action is being chosen. This might have an effect on the learning process
-      action, legal_action = self._decode_action(a)
-
-      #this should encourage the agent to take legal actions
-      #if legal_action == True:
-      #  self.rule_reward += 0.0001
-
-      #else:
-       # self.rule_reward -= 0.0001
-
-      self.game.step(action)
+    #if first action was a Stich, do another action
+    if action.startswith("STICH-"):
       self.state = self.game.get_state(self.player_id)
       self.observation = self._extract_observation(self.state)
       self.observation = np.array(self.observation).astype(float)
+      return self.observation, np.array(self.reward), done, info
 
-    # played cards is empty which means, that a Stich is over
-    if not self.game.round.played_cards:
-      if self.reward_type == "Round":
-        #history_played_cards is being reset to 0 after every round
-        self.state = self.game.get_state(self.player_id)
-        if len(self.state["history_played_cards"]) == 0:
-          #returns the difference in points between the current and last round
-          _, _, diff = self.get_payoffs()
-          if diff[0, 2] != 0 or diff[1, 3] != 0:
-            #to keep the reward within 0 and 1
-            self.reward = diff[0, 2] / (diff[0, 2] + diff[1, 3])
-            if self.player_id == 1 or self.player_id == 3:
-              self.reward = 1 - self.reward
-            #self.reward += self.rule_reward
-            done = True
+    #all the other players take actions until it's player 0 turn again
+    while self.game.round.current_player != 0:
+      #check whether stich is over
+      self.state = self.game.get_state(self.player_id)
+      #this means that the Stich is not over yet and opponents have to make moves
+      if len(self.state["played_cards"]) != 0:
+        current_player = self.game.round.current_player
+        action = self.opponent_or_team_member_play(current_player)
+        self.game.step(action)
+        #if action is Stich, same player has to do another action
+        if action.startswith("STICH-"):
+          action = self.opponent_or_team_member_play(current_player)
+          self.game.step(action)
+      #last player in the Stich has to do an action, after that rewards are being returned
+      else:
+        current_player = self.game.round.current_player
+        action = self.opponent_or_team_member_play(current_player)
+        self.game.step(action)
+        if self.reward_type in ["Round", "Stich"]:
+          self.reward = self.get_rewards()
 
-      elif self.reward_type == "Stich":
-        #returns the difference in points between the current and last stich
-        _, _, diff = self.get_payoffs()
-        if cycle == True:
-          if self.player_id == 0 or self.player_id == 2:
-            self.reward = diff[0, 2] / 157
-          else:
-            self.reward = diff[1, 3] / 157
-            #fix: reward can become slightly negative due to rule reward
-          #self.reward += self.rule_reward
-          done = True
-
+    current_player = self.game.round.current_player
+    #checking whether it is the agents turn again (if so the current state is being returned), otherwise random actions are being taken
+    if current_player == 0:
+      self.state = self.game.get_state(self.player_id)
+      self.observation = self._extract_observation(self.state)
+      self.observation = np.array(self.observation).astype(float)
+      self.state = self.game.get_state(self.player_id)
+      if self.reward_type in ["Round", "Stich"]:
+        if len(self.state["played_cards"]) == 0:
+          self.reward = self.get_rewards()
 
     #after a complete game
     if self.game.is_over():
       done = True
-      payoffs, _, _ = self.get_payoffs()
-      if self.reward_type == "Game":
-        self.reward += payoffs[self.player_id]
-        #self.reward += self.rule_reward
-
-      elif self.reward_type == "Game 0/1":
-        #if the payoff of a player is bigger than 0.5 this means that he won more than 50% of the points and is therefore a winner
-        if payoffs[self.player_id] > 0.5:
-          self.reward += 1
-          #self.reward += self.rule_reward
-        else:
-          self.reward = 0
-          #self.reward += self.rule_reward
-
-      else:
-        pass
+      if self.reward_type in ["Game", "Game 0/1"]:
+        self.reward = self.get_rewards()
 
     return self.observation, np.array(self.reward), done, info
 
@@ -203,6 +178,42 @@ class JassEnv(gym.Env):
     payoffs, _scores, diff = self.game.get_payoffs()
     return np.array(payoffs), _scores, diff
 
+  def get_rewards(self):
+    if self.reward_type == "Round":
+      # history_played_cards is being reset to 0 after every round
+      self.state = self.game.get_state(self.player_id)
+      if len(self.state["history_played_cards"]) == 0:
+        # returns the difference in points between the current and last round
+        _, _, diff = self.get_payoffs()
+        if diff[0, 2] != 0 or diff[1, 3] != 0:
+          # to keep the reward within 0 and 1
+          self.reward = diff[0, 2] / (diff[0, 2] + diff[1, 3])
+          if self.player_id == 1 or self.player_id == 3:
+            self.reward = 1 - self.reward
+          # self.reward += self.rule_reward
+
+    elif self.reward_type == "Stich":
+      # returns the difference in points between the current and last stich
+      _, _, diff = self.get_payoffs()
+      if self.player_id == 0 or self.player_id == 2:
+        self.reward = diff[0, 2] / 157
+      else:
+        self.reward = diff[1, 3] / 157
+
+    elif self.reward_type == "Game":
+      payoffs, _, _ = self.get_payoffs()
+      self.reward += payoffs[self.player_id]
+
+    elif self.reward_type == "Game 0/1":
+      payoffs, _, _ = self.get_payoffs()
+      # if the payoff of a player is bigger than 0.5 this means that he won more than 50% of the points and is therefore a winner
+      if payoffs[self.player_id] > 0.5:
+        self.reward += 1
+      else:
+        self.reward = 0
+
+    return self.reward
+
 
   def _decode_action(self, action_id):
     legal_action = None
@@ -234,36 +245,17 @@ class JassEnv(gym.Env):
     legal_action = observation[3]
     return observation, legal_action
 
-  #checks whether each player has done an action in a round
-  def check_player_cycle(self, state):
-    cycle = False
-    if state["legal_actions"]:
-      if not state["legal_actions"][0].startswith("STICH-"):
-        self.players_list.append([state["current_player"]])
-    else:
-      self.players_list.append([state["current_player"]])
-    self.players_list.sort()
-    if self.players_list == [[0], [1], [2], [3]]:
-      cycle = True
-      self.players_list = []
-    return cycle
+
 
 
 
   def reset(self):
-    #resetting the environment and returning initial observation
+    #resetting the environment and returning initial observation after the whole game
     self.reward = 0.0
-    #self.rule_reward = 0.0
+    self.game.init_game()
     self.state = self.game.get_state(self.player_id)
-    if self.reward_type == "Hybrid" or self.reward_type == "Game":
-      self.game.init_game()
-    else:
-      if len(self.state["history_played_cards"]) == 0:
-        self.game.init_game()
-    self.observation = self._extract_observation(self.state)
-    self.observation = np.array(self.observation)
+    self.observation = np.array(self._extract_observation(self.state))
     return self.observation
-
 
   def close(self):
     return None
