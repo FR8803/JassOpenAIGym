@@ -84,19 +84,13 @@ class JassEnv(gym.Env):
   #reward after each stich
   def step(self, a):
     assert self.action_space.contains(a)
-
     self.reward = 0.0
-
-
     done = None
-
     info = {}
-
-
-
     #take the action chosen by the DQN agent
     action, legal_action = self._decode_action(a)
     self.game.step(action)
+
 
     #if first action was a Stich, do another action
     if action.startswith("STICH-"):
@@ -105,36 +99,33 @@ class JassEnv(gym.Env):
       self.observation = np.array(self.observation).astype(float)
       return self.observation, np.array(self.reward), done, info
 
+    self.state = self.game.get_state(self.player_id)
     #all the other players take actions until it's player 0 turn again
     while self.game.round.current_player != 0:
-      #check whether stich is over
-      self.state = self.game.get_state(self.player_id)
       #this means that the Stich is not over yet and opponents have to make moves
       if len(self.state["played_cards"]) != 0:
-        current_player = self.game.round.current_player
-        action = self.opponent_or_team_member_play(current_player)
+        action = self.opponent_or_team_member_play(self.game.round.current_player)
         self.game.step(action)
-        #if action is Stich, same player has to do another action
-        if action.startswith("STICH-"):
-          action = self.opponent_or_team_member_play(current_player)
-          self.game.step(action)
-      #last player in the Stich has to do an action, after that rewards are being returned
+        self.state = self.game.get_state(self.player_id)
+        #rewards are being returned and first player takes an action
       else:
-        current_player = self.game.round.current_player
-        action = self.opponent_or_team_member_play(current_player)
-        self.game.step(action)
         if self.reward_type in ["Round", "Stich"]:
           self.reward = self.get_rewards()
+        action = self.opponent_or_team_member_play(self.game.round.current_player)
+        self.game.step(action)
+        self.state = self.game.get_state(self.player_id)
+        # if action is Stich, same player has to do another action
+        if action.startswith("STICH-"):
+          action = self.opponent_or_team_member_play(self.game.round.current_player)
+          self.game.step(action)
 
-    current_player = self.game.round.current_player
     #checking whether it is the agents turn again (if so the current state is being returned), otherwise random actions are being taken
-    if current_player == 0:
+    if self.game.round.current_player == 0:
       self.state = self.game.get_state(self.player_id)
       self.observation = self._extract_observation(self.state)
       self.observation = np.array(self.observation).astype(float)
-      self.state = self.game.get_state(self.player_id)
-      if self.reward_type in ["Round", "Stich"]:
-        if len(self.state["played_cards"]) == 0:
+      if len(self.state["played_cards"]) == 0:
+        if self.reward_type in ["Round", "Stich"]:
           self.reward = self.get_rewards()
 
     #after a complete game
@@ -154,6 +145,7 @@ class JassEnv(gym.Env):
 
   #returns a random legal action for the teammate and for the opponents
   def opponent_or_team_member_play(self, current_player):
+    current_player = int(current_player)
     legal_ids, legal_actions = self._get_legal_actions()
     if not legal_actions[0].startswith("STICH-"):
       if self.strategy == "Random":
