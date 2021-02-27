@@ -109,7 +109,7 @@ class JassEnv(gym.Env):
         self.state = self.game.get_state(self.player_id)
         #rewards are being returned and first player takes an action
       else:
-        if self.reward_type in ["Round", "Stich"]:
+        if self.reward_type in ["Round", "Stich", "Hybrid"]:
           self.reward = self.get_rewards()
         action = self.opponent_or_team_member_play(self.game.round.current_player)
         self.game.step(action)
@@ -131,8 +131,7 @@ class JassEnv(gym.Env):
     #after a complete game
     if self.game.is_over():
       done = True
-      if self.reward_type in ["Game", "Game 0/1"]:
-        self.reward = self.get_rewards()
+      self.reward = self.get_rewards()
 
     return self.observation, np.array(self.reward), done, info
 
@@ -184,6 +183,14 @@ class JassEnv(gym.Env):
           else:
             self.reward = diff[1, 3] / 1000
           # self.reward += self.rule_reward
+      if self.game.is_over():
+        _, _, diff = self.get_payoffs()
+        if diff[0, 2] != 0 or diff[1, 3] != 0:
+          # to keep the reward within 0 and 1
+          if self.player_id == 0 or self.player_id == 2:
+            self.reward = diff[0, 2] / 1000
+          else:
+            self.reward = diff[1, 3] / 1000
 
     elif self.reward_type == "Stich":
       # returns the difference in points between the current and last stich
@@ -205,6 +212,22 @@ class JassEnv(gym.Env):
       else:
         self.reward = 0
 
+    elif self.reward_type == "Hybrid":
+      self.state = self.game.get_state(self.player_id)
+      if len(self.state["history_played_cards"]) == 0:
+        # returns the difference in points between the current and last round
+        _, _, diff = self.get_payoffs()
+        if diff[0, 2] != 0 or diff[1, 3] != 0:
+          # to keep the reward within 0 and 1
+          if self.player_id == 0 or self.player_id == 2:
+            self.reward = diff[0, 2] / 2000
+          else:
+            self.reward = diff[1, 3] / 2000
+      if self.game.is_over():
+        payoffs, _, _ = self.get_payoffs()
+        #if player won more than 50% of all rounds
+        if payoffs[self.player_id] > 0.5:
+          self.reward = 0.5
     return self.reward
 
 
