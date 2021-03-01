@@ -122,10 +122,11 @@ class JassGame(object):
         :return: The payoffs and the points for the current round.
         """
         score = self.round.round_points
-        #calculates the difference in points between the last and the current round
+        #calculates the difference in points between the last and the current round / Stich
         self.diff = {key: score[key] - self.old_score.get(key, 0)
                for key in score.keys()}
         self.old_score = copy.copy(score)
+
         score = sorted(score.items(), key=lambda k: k[1], reverse=True)
         winner, w_score = score[0]
         loser, l_score = score[1]

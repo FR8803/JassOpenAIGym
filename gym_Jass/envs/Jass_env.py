@@ -1,4 +1,5 @@
 import gym
+import copy
 import numpy as np
 from gym import error, spaces, utils
 
@@ -45,6 +46,10 @@ class JassEnv(gym.Env):
 
     action_set = self._get_legal_actions()
 
+    #counts Stiche, rounds and Games won by each team
+    #1 refers to Team 1 with players (0,2) and 2 to the other team
+    self.game_dict = {"Stich_1": 0, "Round_1": 0, "Game_1": 0, "Stich_2": 0, "Round_2": 0, "Game_2": 0}
+
     #0-8 for each card in hand
     self.action_space = spaces.Discrete(8)
 
@@ -57,7 +62,7 @@ class JassEnv(gym.Env):
     
     '''
 
-    self.reward_type = "Round"
+    self.reward_type = "Game"
 
     if self.reward_type not in ["Game 0/1", "Game", "Hybrid", "Round", "Stich"]:
       raise ValueError("Invalid reward type")
@@ -73,6 +78,7 @@ class JassEnv(gym.Env):
 
     self.action = None
     self.players_list = []
+    self.old_round_points = {(0, 2): 0, (1, 3): 0}
 
   '''From the OpenAI Gym doc (https://gym.openai.com/do cs/#environments):
   what our actions are doing to the environment, step returns four values (implementation of the action-environment loop):
@@ -111,6 +117,7 @@ class JassEnv(gym.Env):
       else:
         if self.reward_type in ["Round", "Stich", "Hybrid"]:
           self.reward = self.get_rewards()
+        self.stich_round_and_game_counter()
         action = self.opponent_or_team_member_play(self.game.round.current_player)
         self.game.step(action)
         self.state = self.game.get_state(self.player_id)
@@ -118,21 +125,22 @@ class JassEnv(gym.Env):
         if action.startswith("STICH-"):
           action = self.opponent_or_team_member_play(self.game.round.current_player)
           self.game.step(action)
+          self.state = self.game.get_state(self.player_id)
 
-    #checking whether it is the agents turn again (if so the current state is being returned), otherwise random actions are being taken
+          #checking whether it is the agents turn again (if so the current state is being returned), otherwise random actions are being taken
     if self.game.round.current_player == 0:
       self.state = self.game.get_state(self.player_id)
       self.observation = self._extract_observation(self.state)
       self.observation = np.array(self.observation).astype(float)
       if len(self.state["played_cards"]) == 0:
-        if self.reward_type in ["Round", "Stich"]:
+        if self.reward_type in ["Round", "Stich", "Hybrid"]:
           self.reward = self.get_rewards()
+        self.stich_round_and_game_counter()
 
     #after a complete game
     if self.game.is_over():
       done = True
       self.reward = self.get_rewards()
-
     return self.observation, np.array(self.reward), done, info
 
 
@@ -166,7 +174,7 @@ class JassEnv(gym.Env):
 
 
   def get_payoffs(self):
-    payoffs, _scores, diff = self.game.get_payoffs()
+    payoffs, _scores, diff= self.game.get_payoffs()
     return np.array(payoffs), _scores, diff
 
   def get_rewards(self):
@@ -182,7 +190,6 @@ class JassEnv(gym.Env):
             self.reward = diff[0, 2] / 1000
           else:
             self.reward = diff[1, 3] / 1000
-          # self.reward += self.rule_reward
       if self.game.is_over():
         _, _, diff = self.get_payoffs()
         if diff[0, 2] != 0 or diff[1, 3] != 0:
@@ -191,6 +198,7 @@ class JassEnv(gym.Env):
             self.reward = diff[0, 2] / 1000
           else:
             self.reward = diff[1, 3] / 1000
+
 
     elif self.reward_type == "Stich":
       # returns the difference in points between the current and last stich
@@ -215,8 +223,8 @@ class JassEnv(gym.Env):
     elif self.reward_type == "Hybrid":
       self.state = self.game.get_state(self.player_id)
       if len(self.state["history_played_cards"]) == 0:
+        payoffs, _, diff = self.get_payoffs()
         # returns the difference in points between the current and last round
-        _, _, diff = self.get_payoffs()
         if diff[0, 2] != 0 or diff[1, 3] != 0:
           # to keep the reward within 0 and 1
           if self.player_id == 0 or self.player_id == 2:
@@ -225,10 +233,38 @@ class JassEnv(gym.Env):
             self.reward = diff[1, 3] / 2000
       if self.game.is_over():
         payoffs, _, _ = self.get_payoffs()
-        #if player won more than 50% of all rounds
+        # if player won more than 50% of all rounds
         if payoffs[self.player_id] > 0.5:
           self.reward = 0.5
+
     return self.reward
+
+
+  def stich_round_and_game_counter(self):
+    #self.game_dict = {"Stich_1": 0, "Round_1": 0, "Game_1": 0, "Stich_2": 0, "Round_2": 0, "Game_2": 0}
+    if self.game.stich_winner in [0, 2]:
+      self.game_dict["Stich_1"] += 1
+    else:
+      self.game_dict["Stich_2"] += 1
+
+    self.state = self.game.get_state(self.player_id)
+    if len(self.state["history_played_cards"]) == 0:
+      round_points = self.game.round.round_points
+      diff = {key: round_points[key] - self.old_round_points.get(key, 0)
+                  for key in round_points.keys()}
+      self.old_round_points = copy.copy(round_points)
+
+      if diff[0, 2] > diff[1, 3]:
+        self.game_dict["Round_1"] += 1
+      else:
+        self.game_dict["Round_2"] += 1
+    if self.game.is_over():
+      if self.game.round.game_winner == (0, 2):
+        self.game_dict["Game_1"] += 1
+      else:
+        self.game_dict["Game_2"] += 1
+    return self.game_dict
+
 
 
   def _decode_action(self, action_id):
@@ -260,10 +296,6 @@ class JassEnv(gym.Env):
   def observation_and_action_constraint_splitter(self, observation):
     legal_action = observation[3]
     return observation, legal_action
-
-
-
-
 
   def reset(self):
     #resetting the environment and returning initial observation after the whole game
