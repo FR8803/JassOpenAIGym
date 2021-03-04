@@ -58,7 +58,7 @@ class JassEnv(gym.Env):
     Game 0/1 -> a reward of either 0 or 1 is given, if the game is either lost or won. This is probably the most sparse reward system of the three
     Game-> the reward is also being given at the end of the game, however the end reward depens on the performance of each Stich (by dividing a teams points by the total points that could have been reached)
     Round-> Points are being given after each Round (36 cards played), in order to keep the reward between 0 and 1 in a game, the points are being divided by the goal points (1000)
-    Stich-> Points are being given after each Stich (4 cards played), which is then being divided by 157 (max points after 9 Stiche / one round) to keep the points within 0 and 1
+    Stich-> Points are being given after each Stich (4 cards played), which is then being divided by 1000  to keep the points in a game within 0 and 1
     
     '''
 
@@ -204,9 +204,9 @@ class JassEnv(gym.Env):
       # returns the difference in points between the current and last stich
       _, _, diff = self.get_payoffs()
       if self.player_id == 0 or self.player_id == 2:
-        self.reward = diff[0, 2] / 157
+        self.reward = diff[0, 2] / 1000
       else:
-        self.reward = diff[1, 3] / 157
+        self.reward = diff[1, 3] / 1000
 
     elif self.reward_type == "Game":
       payoffs, _, _ = self.get_payoffs()
