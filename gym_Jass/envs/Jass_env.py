@@ -62,7 +62,7 @@ class JassEnv(gym.Env):
     
     '''
 
-    self.reward_type = "Game"
+    self.reward_type = "Stich"
 
     if self.reward_type not in ["Game 0/1", "Game", "Hybrid", "Round", "Stich"]:
       raise ValueError("Invalid reward type")
@@ -122,7 +122,7 @@ class JassEnv(gym.Env):
         self.game.step(action)
         self.state = self.game.get_state(self.player_id)
         # if action is Stich, same player has to do another action
-        if action.startswith("STICH-"):
+        while action.startswith("STICH-"):
           action = self.opponent_or_team_member_play(self.game.round.current_player)
           self.game.step(action)
           self.state = self.game.get_state(self.player_id)
