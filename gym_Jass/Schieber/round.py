@@ -65,6 +65,7 @@ class JassRound(object):
         self.round_over = False
         self.game_over = False
         self.game_winner = None
+        self.stich_points = 0
         if team_scores is None:
             self.round_points = {(0, 2): 0, (1, 3): 0}
         else:
@@ -243,6 +244,7 @@ class JassRound(object):
         if self.round_over:
             score += self.FINAL_STICH_BONUS  # assign bonus points for final stich
         self.round_points[stich_winner] += score
+        self.stich_points = score
         self.stich_winner = winner  # only track winning player, not team
         # self.current_player = winner  # winner opens the next stich
         #create history of cards played

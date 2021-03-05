@@ -48,8 +48,7 @@ class JassEnv(gym.Env):
 
     #counts Stiche, rounds and Games won by each team
     #1 refers to Team 1 with players (0,2) and 2 to the other team
-    self.game_dict = {"Stich_1": 0, "Round_1": 0, "Game_1": 0, "Stich_2": 0, "Round_2": 0, "Game_2": 0}
-
+    self.game_dict = {"Stich_1": 0, "Round_1": 0, "Game_1": 0, "sum_tot_round_points_1": 0, "avg_score_per_round_won_1" : 0, "sum_tot_stich_points_1": 0, "avg_score_per_stich_won_1" : 0, "Stich_2": 0, "Round_2": 0, "Game_2": 0, "sum_tot_round_points_2": 0, "avg_score_per_round_won_2" : 0, "sum_tot_stich_points_2": 0, "avg_score_per_stich_won_2" : 0}
     #0-8 for each card in hand
     self.action_space = spaces.Discrete(8)
 
@@ -241,11 +240,18 @@ class JassEnv(gym.Env):
 
 
   def stich_round_and_game_counter(self):
-    #self.game_dict = {"Stich_1": 0, "Round_1": 0, "Game_1": 0, "Stich_2": 0, "Round_2": 0, "Game_2": 0}
+    #    self.game_dict = {"Stich_1": 0, "Round_1": 0, "Game_1": 0, "sum_tot_round_points_1": 0, "avg_score_per_round_won_1" : 0, "sum_tot_stich_points_1": 0, "avg_score_per_stich_won_1" : 0, "Stich_2": 0, "Round_2": 0, "Game_2": 0, "sum_tot_round_points_2": 0, "avg_score_per_round_won_2" : 0, "sum_tot_stich_points_2": 0, "avg_score_per_stich_won_2" : 0}
     if self.game.stich_winner in [0, 2]:
       self.game_dict["Stich_1"] += 1
+      if self.game.round.stich_points != 0:
+        self.game_dict["sum_tot_stich_points_1"] += self.game.round.stich_points
+        self.game_dict["avg_score_per_stich_won_1"] = self.game_dict["sum_tot_stich_points_1"] / self.game_dict["Stich_1"]
     else:
       self.game_dict["Stich_2"] += 1
+      if self.game.round.stich_points != 0:
+        self.game_dict["sum_tot_stich_points_2"] += self.game.round.stich_points
+        self.game_dict["avg_score_per_stich_won_2"] = self.game_dict["sum_tot_stich_points_2"] / self.game_dict["Stich_2"]
+
 
     self.state = self.game.get_state(self.player_id)
     if len(self.state["history_played_cards"]) == 0:
@@ -256,8 +262,15 @@ class JassEnv(gym.Env):
 
       if diff[0, 2] > diff[1, 3]:
         self.game_dict["Round_1"] += 1
+        self.game_dict["sum_tot_round_points_1"] += diff[0, 2]
+        self.game_dict["avg_score_per_round_won_1"] = self.game_dict["sum_tot_round_points_1"] / self.game_dict["Round_1"]
       else:
         self.game_dict["Round_2"] += 1
+        self.game_dict["sum_tot_round_points_2"] += diff[1, 3]
+        self.game_dict["avg_score_per_round_won_2"] = self.game_dict["sum_tot_round_points_2"] / self.game_dict["Round_2"]
+
+
+
     if self.game.is_over():
       if self.game.round.game_winner == (0, 2):
         self.game_dict["Game_1"] += 1
@@ -300,6 +313,7 @@ class JassEnv(gym.Env):
   def reset(self):
     #resetting the environment and returning initial observation after the whole game
     self.reward = 0.0
+    self.old_round_points = {(0, 2): 0, (1, 3): 0}
     self.game.init_game()
     self.state = self.game.get_state(self.player_id)
     self.observation = np.array(self._extract_observation(self.state))
