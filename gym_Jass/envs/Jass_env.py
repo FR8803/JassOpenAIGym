@@ -125,6 +125,8 @@ class JassEnv(gym.Env):
           action = self.opponent_or_team_member_play(self.game.round.current_player)
           self.game.step(action)
           self.state = self.game.get_state(self.player_id)
+          if self.game.is_over():
+            self.stich_round_and_game_counter()
 
           #checking whether it is the agents turn again (if so the current state is being returned), otherwise random actions are being taken
     if self.game.round.current_player == 0:
@@ -268,8 +270,6 @@ class JassEnv(gym.Env):
         self.game_dict["Round_2"] += 1
         self.game_dict["sum_tot_round_points_2"] += diff[1, 3]
         self.game_dict["avg_score_per_round_won_2"] = self.game_dict["sum_tot_round_points_2"] / self.game_dict["Round_2"]
-
-
 
     if self.game.is_over():
       if self.game.round.game_winner == (0, 2):
